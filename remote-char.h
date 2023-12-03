@@ -1,3 +1,6 @@
+#define FIFO_LOCATION "/tmp/requests-fifo"
+#define MAX_USERS 10
+
 // TODO_1
 // declaration the struct corresponding to the exchanged messages
 typedef enum direction_t
@@ -22,7 +25,9 @@ typedef struct user
     int y;
 } user;
 
-// TODO_2
-// declaration of the FIFO location
-
-#define FIFO_LOCATION "/tmp/requests-fifo"
+// message update to send position of users
+typedef struct window_update
+{
+    int amount_of_users;
+    user users[MAX_USERS];
+} window_update;
