@@ -1,66 +1,72 @@
-
-#include <ncurses.h>
-#include "remote-char.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+
+#include <zmq.h>
+
+#include <ncurses.h>
+
+#include "remote-char.h"
+
 #define WINDOW_SIZE 15
 
 direction_t random_direction()
 {
     return random() % 4;
 }
-void new_position(int *x, int *y, direction_t direction)
-{
-    switch (direction)
-    {
+
+void new_position(int *x, int *y, direction_t direction) {
+    switch(direction) {
     case UP:
         (*x)--;
-        if (*x == 0)
+        if(*x == 0)
             *x = 2;
         break;
     case DOWN:
         (*x)++;
-        if (*x == WINDOW_SIZE - 1)
+        if(*x == WINDOW_SIZE - 1)
             *x = WINDOW_SIZE - 3;
         break;
     case LEFT:
         (*y)--;
-        if (*y == 0)
+        if(*y == 0)
             *y = 2;
         break;
     case RIGHT:
         (*y)++;
-        if (*y == WINDOW_SIZE - 1)
+        if(*y == WINDOW_SIZE - 1)
             *y = WINDOW_SIZE - 3;
         break;
     default:
         break;
     }
 }
-void open_fifo_file(char *path, int *fd, int mode)
-{
-    while ((*fd = open(path, mode)) == -1)
-    {
-        if (mkfifo(path, 0666) != 0)
-        {
-            printf("problem creating the fifo\n");
-            exit(-1);
-        }
-        else
-            printf("fifo created\n");
+
+int main(int argc, char* argv []) {
+    /* Create context */
+    void *context = zmq_ctx_new ();
+    if(context == NULL) {
+        printf("Failed to create context: %s\n", zmq_strerror(errno));
+        return 1;
     }
-}
 
-int main()
-{
+    /* Create REP socket to receive messages from clients */
+    void* responder = zmq_socket(context, ZMQ_REP);
+    if(responder == NULL) {
+        printf("Failed to create REP socket: %s\n", zmq_strerror(errno));
+        zmq_ctx_destroy(context);
+        return 1;
+    }
 
-    // TODO_3
-    // create and open the FIFO for reading
-    int request_fd;
-    open_fifo_file(FIFO_LOCATION, &request_fd, O_RDONLY);
+    /* Bind to the REP socket */
+    if(zmq_bind(responder, SERVER_SOCKET_IP) != 0) {
+        printf("Failed to bind REP socket: %s\n", zmq_strerror(errno));
+        zmq_close(responder);
+        zmq_ctx_destroy(context);
+        return 1;
+    }
 
     // ncurses initialization
     initscr();
@@ -85,14 +91,12 @@ int main()
     message request_message;
 
     int amount_of_users = 0;
-    while (1)
-    {
-        // TODO_7
-        // receive message from the clients
-        read(request_fd, &request_message, sizeof(message));
+    int success = 1;
+    while(1) {
+        //read(request_fd, &request_message, sizeof(message));
+        zmq_recv(responder, &request_message, sizeof(message) - 1, 0);
+        zmq_send(responder, &success, sizeof(success), 0);
 
-        // TODO_8
-        //  process connection messages
         if (request_message.msg_type == 0)
         {
             if (amount_of_users > 10)
@@ -114,10 +118,7 @@ int main()
             amount_of_users++;
         }
 
-        // TODO_11
-        // process the movement message
-        if (request_message.msg_type == 1)
-        {
+        if (request_message.msg_type == 1) {
             // find user of ch
             int user_id;
             for (int i = 0; i < amount_of_users; i++)
@@ -140,8 +141,10 @@ int main()
             wrefresh(my_win);
         }
     }
-    endwin(); /* End curses mode		  */
 
+    endwin();
+    zmq_close(responder);
+    zmq_ctx_destroy(context);
     free(users);
 
     return 0;
