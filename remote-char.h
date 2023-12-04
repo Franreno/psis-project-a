@@ -1,4 +1,10 @@
-typedef enum direction_t {
+#define FIFO_LOCATION "/tmp/requests-fifo"
+#define MAX_USERS 10
+
+// TODO_1
+// declaration the struct corresponding to the exchanged messages
+typedef enum direction_t
+{
     UP,
     DOWN,
     LEFT,
@@ -6,20 +12,23 @@ typedef enum direction_t {
 } direction_t;
 
 // Message type roach clients use to communicate with the server
-typedef struct message_to_server {
-    int client_id; // 1 = lizard, 2 = roach, 3 = display-app
-    int type; // 1 = connect, 2 = movement
-    int value; // score of roach to connect or id of the roach to move
+typedef struct message_to_server
+{
+    int client_id;         // 1 = lizard, 2 = roach, 3 = display-app
+    int type;              // 1 = connect, 2 = movement
+    int value;             // score of roach to connect or id of the roach to move
     direction_t direction; // direction to move the roach
 } message_to_server;
 
-typedef struct lizard {
+typedef struct lizard
+{
     char ch;
     int x;
     int y;
 } lizard;
 
-typedef struct roach {
+typedef struct roach
+{
     char ch;
     int x;
     int y;
@@ -29,3 +38,5 @@ typedef struct roach {
 #define DEFAULT_SERVER_PORT "5555"
 #define SUCCESS 1
 #define FAILURE -1
+
+// message update to send position of users
