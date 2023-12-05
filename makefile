@@ -23,5 +23,6 @@ Display-app: $(OBJ_DISPLAY)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Clean up the .o files and executables
 clean:
-	rm -f *.o lizardsNroaches-server roaches-client
+	rm -f *.o lizardsNroaches-server roaches-client Display-app

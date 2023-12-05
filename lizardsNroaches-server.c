@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <zmq.h>
 
@@ -16,6 +17,19 @@
 
 int success = SUCCESS;
 int failure = FAILURE;
+
+
+
+void print_constants()
+{
+    printf("The server is running with the following parameters:\n");
+    printf("WINDOW_SIZE: %d\n", WINDOW_SIZE);
+    printf("ROACH_MOVE_CHANCE: %d\n", ROACH_MOVE_CHANCE);
+    printf("MAX_ROACH_SCORE: %d\n", MAX_ROACH_SCORE);
+    printf("MAX_ROACHES_GENERATED: %d\n", MAX_ROACHES_GENERATED);
+    printf("MAX_ROACHES_ALLOWED: %d\n", MAX_ROACHES_ALLOWED);
+    printf("MAX_LIZARDS_ALLOWED: %d\n", MAX_LIZARDS_ALLOWED);
+}
 
 void new_position(int *x, int *y, direction_t direction)
 {
@@ -182,6 +196,9 @@ void process_roach_message(variable_that_roach_need *roach_payload)
 
 int main()
 {
+    // Print the parameters the server is running with
+    print_constants(); // NOT PRINTING ??
+
     // Initialize logger
     log_init("server.log");
 
@@ -244,8 +261,8 @@ int main()
 
     // Initialize variables used for roach tracking
     int num_roaches = 0;
-    int slot_roaches = MAX_ROACHES;
-    roach roaches[MAX_ROACHES];
+    int slot_roaches = MAX_ROACHES_ALLOWED;
+    roach roaches[MAX_ROACHES_ALLOWED];
 
     message_to_server recv_message;
 

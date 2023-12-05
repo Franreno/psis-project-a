@@ -1,17 +1,18 @@
 #ifndef REMOTE_CHAR_H
-#define REMOTE_CHAR_H
 
-#define FIFO_LOCATION "/tmp/requests-fifo"
-#define MAX_USERS 10
-#define DEFAULT_SERVER_ADDRESS "localhost"
-#define DEFAULT_SERVER_PORT "5555"
+#define REMOTE_CHAR_H
 #define SUCCESS 1
 #define FAILURE -1
+#define FIFO_LOCATION "/tmp/requests-fifo"
+#define DEFAULT_SERVER_ADDRESS "localhost"
+#define DEFAULT_SERVER_PORT "5555"
 #define WINDOW_SIZE 30
-#define MAX_ROACHES 8
+#define ROACH_MOVE_CHANCE 50
+#define MAX_ROACH_SCORE 5
+#define MAX_ROACHES_GENERATED 10
+#define MAX_ROACHES_ALLOWED (WINDOW_SIZE*WINDOW_SIZE/3)
+#define MAX_LIZARDS_ALLOWED 10
 
-// TODO_1
-// declaration the struct corresponding to the exchanged messages
 typedef enum direction_t
 {
     UP,
