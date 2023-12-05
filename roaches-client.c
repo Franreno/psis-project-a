@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
+#include <signal.h>
 
 #include <zmq.h>
 
@@ -28,15 +29,28 @@
 // Roaches_connect + response (from the Roaches-client to the server)
 // Roaches_movement + response (from the Roaches-client to the server)
 
-int main(int argc, char *argv[]) {
+volatile sig_atomic_t stop = 0;
+
+void handle_sigint(int sig)
+{
+    stop = 1;
+}
+
+int main(int argc, char *argv[])
+{
+    signal(SIGINT, handle_sigint);
+
     char *address = DEFAULT_SERVER_ADDRESS;
     char *port = DEFAULT_SERVER_PORT;
 
     // Check if address and port were provided as command line arguments, if not, use default values
-    if(argc != 3) {
+    if (argc != 3)
+    {
         printf("No address and port provided!\n");
         printf("Using default address and port: %s %s\n", DEFAULT_SERVER_ADDRESS, DEFAULT_SERVER_PORT);
-    } else {
+    }
+    else
+    {
         printf("Using address and port: %s %s\n", argv[1], argv[2]);
         address = argv[1];
         port = argv[2];
@@ -53,21 +67,24 @@ int main(int argc, char *argv[]) {
 
     // Create context
     void *context = zmq_ctx_new();
-    if(context == NULL) {
+    if (context == NULL)
+    {
         printf("Failed to create context: %s\n", zmq_strerror(errno));
         return 1;
     }
 
     // Create REQ socket to send messages to server
     void *requester = zmq_socket(context, ZMQ_REQ);
-    if(requester == NULL) {
+    if (requester == NULL)
+    {
         printf("Failed to create socket: %s\n", zmq_strerror(errno));
         zmq_ctx_destroy(context);
         return 1;
     }
 
     // Connect to the server using ZMQ_REQ
-    if(zmq_connect(requester, server_socket_address) != 0) {
+    if (zmq_connect(requester, server_socket_address) != 0)
+    {
         printf("Failed to connect: %s\n", zmq_strerror(errno));
         zmq_close(requester);
         zmq_ctx_destroy(context);
@@ -75,8 +92,8 @@ int main(int argc, char *argv[]) {
     }
 
     message_to_server send_message;
-    send_message.client_id = 2;
-    send_message.type = 1;
+    send_message.client_id = ROACH;
+    send_message.type = CONNECT;
 
     int num_roaches;
     int reply;
@@ -92,14 +109,16 @@ int main(int argc, char *argv[]) {
     int *roaches = malloc(sizeof(int) * num_roaches);
 
     // For each roach, randomly generate a value from 1 to 5 for its score
-    for(int i = 0; i < num_roaches; i++) {
+    for (int i = 0; i < num_roaches; i++)
+    {
         roaches[i] = rand() % 5 + 1;
     }
 
     printf("Connecting cockroaches...\n");
 
     // For each roach, send a connect message to the server and wait for a response
-    for(int i = 0; i < num_roaches; i++) {
+    for (int i = 0; i < num_roaches; i++)
+    {
         send_message.value = roaches[i];
         // Send message to server connecting a roach
         zmq_send(requester, &send_message, sizeof(message_to_server), 0);
@@ -109,25 +128,30 @@ int main(int argc, char *argv[]) {
         zmq_recv(requester, &reply, sizeof(int), 0);
 
         // If the server replies with failure, stop attempting to connect roaches
-        if(reply == FAILURE) {
+        if (reply == FAILURE)
+        {
             printf("Failed to connect roach! No more slots available\n");
             num_roaches = i;
             break;
-        // If the server replies with a roach id, store the id in the roaches array, replacing it's score
-        } else {
+            // If the server replies with a roach id, store the id in the roaches array, replacing it's score
+        }
+        else
+        {
             printf("Successfully connected roach! Roach id: %d\n", reply);
             roaches[i] = reply;
         }
     }
 
     int sleep_delay;
-    send_message.type = 2;
+    send_message.type = MOVEMENT;
 
-    while(1) {
+    while (!stop)
+    {
         // Iterate over each roach and send a movement message to the server
-        for(int i = 0; i < num_roaches; i++) {
+        for (int i = 0; i < num_roaches && !stop; i++)
+        {
             // Sleep for a random amount of time
-            sleep_delay = random() % 2000000;
+            sleep_delay = random() % 200000;
             usleep(sleep_delay);
 
             // Prepare roach movement message selecting a random direction
@@ -140,6 +164,16 @@ int main(int argc, char *argv[]) {
             // Server replies with success if the movement was successful
             zmq_recv(requester, &reply, sizeof(int), 0);
         }
+    }
+
+    send_message.client_id = ROACH;
+    send_message.type = DISCONNECT;
+
+    for (int i = 0; i < num_roaches; i++)
+    {
+        send_message.value = roaches[i];
+        zmq_send(requester, &send_message, sizeof(message_to_server), 0);
+        zmq_recv(requester, &reply, sizeof(int), 0);
     }
 
     // Close socket and destroy context
