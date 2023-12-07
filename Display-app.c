@@ -85,30 +85,23 @@ int main()
     zmq_send(requester, &send_message, sizeof(message_to_server), 0);
 
     // Buffer to hold the received data
-    char *buffer = NULL;
-    size_t buffer_size = 0;
-
-    // First, receive the size of the incoming message
-    log_write("Waiting for buffer size");
+    size_t buffer_size;
     zmq_recv(requester, &buffer_size, sizeof(buffer_size), 0);
 
-    log_write("Received buffer size: %d", buffer_size);
-    // Allocate memory for the buffer based on the received size
-    buffer = malloc(buffer_size);
+    // Allocate the buffer based on the received size
+    char *buffer = malloc(buffer_size);
     if (!buffer)
     {
-        log_write("Failed to allocate memory for buffer");
-        // Handle memory allocation error
         exit(1);
     }
 
+    // First, receive the size of the incoming message
+    zmq_recv(requester, buffer, buffer_size, 0);
     // Creates a window and draws a border
     window_data *game_window;
-    log_write("Initializing window");
     window_init_with_matrix(&game_window, WINDOW_SIZE, WINDOW_SIZE, buffer);
-    log_write("Window initialized");
+
     draw_entire_matrix(game_window);
-    log_write("Window drawn");
 
     int sleep_delay;
     while (1)

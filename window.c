@@ -61,7 +61,7 @@ void init_window_matrix(window_matrix *matrix, int width, int height)
     matrix->cells = malloc(sizeof(layer_cell) * width * height);
     for (int i = 0; i < width * height; ++i)
     {
-        matrix->cells[i].stack = NULL;
+        matrix->cells[i].stack = malloc(sizeof(layer_char) * 1);
         matrix->cells[i].top = -1;
         matrix->cells[i].capacity = 0;
     }
@@ -184,39 +184,48 @@ void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffe
     int cell_count = matrix->width * matrix->height;
     int layer_char_size = sizeof(layer_char);
 
-    // Calculate the total number of layers and the buffer size needed
-    int total_layers = 0;
-    *buffer_size = 0;
+    // Calculate buffer size
+    *buffer_size = sizeof(int) * 2; // for width and height
     for (int i = 0; i < cell_count; i++)
     {
-        int layers_in_cell = matrix->cells[i].top + 1;
-        total_layers += layers_in_cell;
-        *buffer_size += sizeof(int) + layers_in_cell * layer_char_size; // Include size for layer_count
+        *buffer_size += sizeof(int) * 2;                             // for capacity and top of each cell
+        *buffer_size += matrix->cells[i].capacity * layer_char_size; // for stack elements
     }
 
     *buffer = malloc(*buffer_size);
     if (!*buffer)
     {
-        // Handle memory allocation error
         *buffer_size = 0;
         return;
     }
 
     char *ptr = *buffer;
+
+    // Serialize width and height
+    memcpy(ptr, &matrix->width, sizeof(int));
+    ptr += sizeof(int);
+    memcpy(ptr, &matrix->height, sizeof(int));
+    ptr += sizeof(int);
+
+    // Serialize each cell
     for (int i = 0; i < cell_count; i++)
     {
         layer_cell cell = matrix->cells[i];
-        int layer_count = cell.top + 1;
 
-        // Serialize the layer count
-        memcpy(ptr, &layer_count, sizeof(int));
+        // Serialize capacity and top
+        memcpy(ptr, &cell.capacity, sizeof(int));
+        ptr += sizeof(int);
+        memcpy(ptr, &cell.top, sizeof(int));
         ptr += sizeof(int);
 
-        // Serialize the layer_char structures
-        for (int j = 0; j < layer_count; j++)
+        // Serialize stack elements
+        if (cell.capacity > 0)
         {
-            memcpy(ptr, &cell.stack[j], layer_char_size);
-            ptr += layer_char_size;
+            for (int j = 0; j <= cell.top; j++)
+            {
+                memcpy(ptr, &cell.stack[j], layer_char_size);
+                ptr += layer_char_size;
+            }
         }
     }
 }
@@ -226,19 +235,43 @@ void deserialize_window_matrix(window_matrix *matrix, char *buffer)
     char *ptr = buffer;
     int layer_char_size = sizeof(layer_char);
 
+    // Deserialize width and height
+    memcpy(&matrix->width, ptr, sizeof(int));
+    ptr += sizeof(int);
+    memcpy(&matrix->height, ptr, sizeof(int));
+    ptr += sizeof(int);
+
+    // Initialize cells
+    matrix->cells = malloc(matrix->width * matrix->height * sizeof(layer_cell));
+
+    // Deserialize each cell
     for (int i = 0; i < matrix->width * matrix->height; i++)
     {
-        int layer_count;
-        memcpy(&layer_count, ptr, sizeof(int));
+        int capacity, top;
+
+        // Deserialize capacity and top
+        memcpy(&capacity, ptr, sizeof(int));
+        ptr += sizeof(int);
+        memcpy(&top, ptr, sizeof(int));
         ptr += sizeof(int);
 
-        matrix->cells[i].top = layer_count - 1;
-        matrix->cells[i].stack = malloc(layer_count * layer_char_size);
-        for (int j = 0; j < layer_count; j++)
+        // Allocate stack and deserialize elements if capacity > 0
+        if (capacity > 0)
         {
-            memcpy(&matrix->cells[i].stack[j], ptr, layer_char_size);
-            ptr += layer_char_size;
+            matrix->cells[i].stack = malloc(capacity * layer_char_size);
+            for (int j = 0; j <= top; j++)
+            {
+                memcpy(&matrix->cells[i].stack[j], ptr, layer_char_size);
+                ptr += layer_char_size;
+            }
         }
+        else
+        {
+            matrix->cells[i].stack = NULL;
+        }
+
+        matrix->cells[i].capacity = capacity;
+        matrix->cells[i].top = top;
     }
 }
 
@@ -261,11 +294,41 @@ void draw_entire_matrix(window_data *data)
             if (cell.top >= 0)
             {
                 layer_char top_char = cell.stack[cell.top];
-                mvwaddch(data->win, y, x, top_char.ch | A_BOLD);
+                wmove(data->win, x, y);
+                waddch(data->win, top_char.ch);
+                wrefresh(data->win);
             }
         }
     }
 
     // Refresh the window to update the screen
     wrefresh(data->win);
+}
+
+void print_window_matrix(window_matrix *matrix)
+{
+    if (matrix == NULL)
+    {
+        printf("Matrix is NULL\n");
+        return;
+    }
+
+    printf("Matrix Width: %d, Height: %d\n", matrix->width, matrix->height);
+    for (int y = 0; y < matrix->height; y++)
+    {
+        for (int x = 0; x < matrix->width; x++)
+        {
+            int index = y * matrix->width + x;
+            layer_cell cell = matrix->cells[index];
+            printf("Cell [%d,%d]: Capacity: %d, Top: %d, Characters: ", x, y, cell.capacity, cell.top);
+            if (cell.top >= 0)
+            {
+                for (int j = 0; j <= cell.top; j++)
+                {
+                    printf("%c ", cell.stack[j].ch);
+                }
+            }
+            printf("\n");
+        }
+    }
 }

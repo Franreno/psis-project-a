@@ -67,13 +67,10 @@ void process_lizard_message(message_to_server *recv_message)
 
 void process_display_app_message(void *responder, window_data *data)
 {
-    log_write("Processing display app message\n");
     // Serialize the window matrix
     char *serialized_data;
     size_t serialized_size;
-    log_write("Serializing window matrix\n");
     serialize_window_matrix(data->matrix, &serialized_data, &serialized_size);
-    log_write("Serialized size: %d\n", serialized_size);
 
     if (!serialized_data)
     {
@@ -85,6 +82,7 @@ void process_display_app_message(void *responder, window_data *data)
     }
 
     // Send the serialized data
+    zmq_send(responder, &serialized_size, sizeof(serialized_size), ZMQ_SNDMORE);
     zmq_send(responder, serialized_data, serialized_size, 0);
 
     // Cleanup

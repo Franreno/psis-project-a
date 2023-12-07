@@ -75,7 +75,7 @@ int create_and_connect_socket(int argc, char *argv[], char **server_socket_addre
 void generate_and_connect_roaches(int num_roaches, int *roaches, void *requester, message_to_server *send_message)
 {
     int reply;
-    
+
     send_message->client_id = ROACH;
     send_message->type = CONNECT;
 
@@ -154,7 +154,7 @@ void disconnect_roaches(int num_roaches, int *roaches, void *requester, message_
     for (int i = 0; i < num_roaches; i++)
     {
         send_message->value = roaches[i];
-        zmq_send(requester, &send_message, sizeof(message_to_server), 0);
+        zmq_send(requester, send_message, sizeof(message_to_server), 0);
         zmq_recv(requester, &reply, sizeof(int), 0);
     }
 }
@@ -167,7 +167,8 @@ int main(int argc, char *argv[])
     void *context;
     void *requester;
 
-    if (create_and_connect_socket(argc, argv, &server_socket_address, &context, &requester) != 0) {
+    if (create_and_connect_socket(argc, argv, &server_socket_address, &context, &requester) != 0)
+    {
         return 1;
     }
 

@@ -50,4 +50,5 @@ void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffe
 void deserialize_window_matrix(window_matrix *matrix, char *buffer);
 void window_init_with_matrix(window_data **data, int width, int height, char *serialized_matrix);
 void draw_entire_matrix(window_data *data);
+void print_window_matrix(window_matrix *matrix);
 #endif // WINDOW_H
