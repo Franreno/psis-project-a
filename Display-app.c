@@ -63,7 +63,7 @@ int main()
         zmq_ctx_destroy(context);
         return 1;
     }
-    // Conect to the server usin ZMQ_PUB
+    // Connect to the server using ZMQ_PUB
     if (zmq_connect(subscriber, "tcp://127.0.0.1:5556") != 0)
     {
         printf("Failed to connect: %s\n", zmq_strerror(errno));

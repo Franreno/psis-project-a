@@ -117,6 +117,7 @@ void move_roaches(int num_roaches, int *roaches, void *requester, message_to_ser
     int sleep_delay;
     int reply;
 
+    send_message->client_id = ROACH;
     send_message->type = MOVEMENT;
 
     while (!*stop)

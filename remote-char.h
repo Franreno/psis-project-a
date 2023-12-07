@@ -1,6 +1,6 @@
 #ifndef REMOTE_CHAR_H
-
 #define REMOTE_CHAR_H
+
 #define SUCCESS 1
 #define FAILURE -1
 #define FIFO_LOCATION "/tmp/requests-fifo"
@@ -35,12 +35,12 @@ typedef enum client_type
     DISPLAY_APP,
 } client_type;
 
-// Message type roach clients use to communicate with the server
+// Message type clients use to communicate with the server
 typedef struct message_to_server
 {
     int client_id;         // 1 = lizard, 2 = roach, 3 = display-app
     int type;              // 1 = connect, 2 = movement
-    int value;             // score of roach to connect or id of the roach to move
+    int value;             // usage depends on client_id and type
     direction_t direction; // direction to move the roach
 } message_to_server;
 
@@ -49,6 +49,9 @@ typedef struct lizard
     char ch;
     int x;
     int y;
+    int score;
+    int prev_x;
+    int prev_y;
 } lizard;
 
 typedef struct roach

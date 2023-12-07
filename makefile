@@ -1,28 +1,24 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
-LIBS = -lncurses -lzmq
 
-# Define .o files for lizardsNroaches-server and roaches-client that depend on logger.o
-OBJ_SERVER = lizardsNroaches-server.o logger.o window.o
-OBJ_CLIENT = roaches-client.o logger.o
-OBJ_DISPLAY = Display-app.o logger.o window.o
+all: lizardsNroaches-server Display-app lizard-client roaches-client
 
-all: lizardsNroaches-server roaches-client Display-app
+lizardsNroaches-server: lizardsNroaches-server.o logger.o window.o
+	$(CC) $(CFLAGS) -o $@ $^ -lncurses -lzmq
 
-# Link the server and client executables with logger.o
-lizardsNroaches-server: $(OBJ_SERVER)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+Display-app: Display-app.o logger.o window.o
+	$(CC) $(CFLAGS) -o $@ $^ -lncurses -lzmq
 
-roaches-client: $(OBJ_CLIENT)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+lizard-client: lizard-client.o logger.o
+	$(CC) $(CFLAGS) -o $@ $^ -lncurses -lzmq
 
-Display-app: $(OBJ_DISPLAY)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+roaches-client: roaches-client.o logger.o
+	$(CC) $(CFLAGS) -o $@ $^ -lzmq
 
-# Compile the .o files
+# Compile all the ".o" files
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean up the .o files and executables
+# Clean up all the ".o" and executables files
 clean:
-	rm -f *.o lizardsNroaches-server roaches-client Display-app
+	rm -f *.o lizardsNroaches-server Display-app lizard-client roaches-client

@@ -7,7 +7,6 @@ void log_init(const char *filename)
     log_file = fopen(filename, "a"); // "a" to append to the file if it exists
     if (log_file == NULL)
     {
-        // Handle error, you might want to print to stderr or take other actions
         perror("Error opening log file");
     }
 }
