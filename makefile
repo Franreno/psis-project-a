@@ -3,10 +3,10 @@ CFLAGS = -Wall -Wextra -pedantic
 
 all: lizardsNroaches-server Display-app lizard-client roaches-client
 
-lizardsNroaches-server: lizardsNroaches-server.o logger.o window.o
+lizardsNroaches-server: lizardsNroaches-server.o util.o logger.o window.o lizard-mover.o roach-mover.o
 	$(CC) $(CFLAGS) -o $@ $^ -lncurses -lzmq
 
-Display-app: Display-app.o logger.o window.o
+Display-app: Display-app.o util.o logger.o window.o lizard-mover.o roach-mover.o
 	$(CC) $(CFLAGS) -o $@ $^ -lncurses -lzmq
 
 lizard-client: lizard-client.o logger.o
