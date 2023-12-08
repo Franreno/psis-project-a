@@ -27,13 +27,15 @@ void process_lizard_connect(lizard_mover *lizard_payload)
 
         return;
     }
+
+    // Get the id of the new lizard
+    int id = *(lizard_payload->num_lizards);
+
     // Increment the number of lizards and decrement the available slots
     (*(lizard_payload->num_lizards))++;
     (*(lizard_payload->slot_lizards))--;
 
-    int id = *(lizard_payload->num_lizards) - 1;
-
-    // Initialize the lizard in a random position
+    // Initialize the lizard in a random position and with score 0
     lizard_payload->lizards[id].ch = (char)lizard_payload->recv_message->value;
     lizard_payload->lizards[id].x = rand() % (WINDOW_SIZE - 2) + 1;
     lizard_payload->lizards[id].y = rand() % (WINDOW_SIZE - 2) + 1;
@@ -41,6 +43,8 @@ void process_lizard_connect(lizard_mover *lizard_payload)
 
     // Draw the lizard in the random position
     window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
+
+    // TODO - DRAW LIZARDS TAIL
 
     // Reply indicating position of the lizard in the array
     if (lizard_payload->should_use_responder)
