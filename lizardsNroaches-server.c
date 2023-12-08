@@ -14,29 +14,10 @@
 #include "remote-char.h"
 #include "logger.h"
 #include "window.h"
-
-int success = SUCCESS;
-int failure = FAILURE;
-
-typedef struct variable_that_roach_need
-{
-    message_to_server *recv_message;
-    roach *roaches;
-    void *responder;
-    int *num_roaches;
-    int *slot_roaches;
-    window_data *game_window;
-} variable_that_roach_need;
-
-typedef struct variable_that_lizard_need
-{
-    message_to_server *recv_message;
-    lizard *lizards;
-    void *responder;
-    int *num_lizards;
-    int *slot_lizards;
-    window_data *game_window;
-} variable_that_lizard_need;
+#include "roach-mover.h"
+#include "lizard-mover.h"
+#include "util.h"
+#include "zhelpers.h"
 
 void print_constants()
 {
@@ -49,36 +30,7 @@ void print_constants()
     printf("MAX_LIZARDS_ALLOWED: %d\n", MAX_LIZARDS_ALLOWED);
 }
 
-void new_position(int *x, int *y, direction_t direction)
-{
-    switch (direction)
-    {
-    case UP:
-        (*x)--;
-        if (*x == 0)
-            *x = 2;
-        break;
-    case DOWN:
-        (*x)++;
-        if (*x == WINDOW_SIZE - 1)
-            *x = WINDOW_SIZE - 3;
-        break;
-    case LEFT:
-        (*y)--;
-        if (*y == 0)
-            *y = 2;
-        break;
-    case RIGHT:
-        (*y)++;
-        if (*y == WINDOW_SIZE - 1)
-            *y = WINDOW_SIZE - 3;
-        break;
-    default:
-        break;
-    }
-}
-
-void process_display_app_message(void *responder, window_data *data)
+void process_display_app_message(void *responder, window_data *data, roach_mover *roach_mover, lizard_mover *lizard_mover)
 {
     // Serialize the window matrix
     char *serialized_data;
@@ -87,8 +39,6 @@ void process_display_app_message(void *responder, window_data *data)
 
     if (!serialized_data)
     {
-        // Handle memory allocation error
-        // Optionally, send an error message back to the client
         int error_code = -1; // Example error code
         zmq_send(responder, &error_code, sizeof(error_code), 0);
         return;
@@ -96,196 +46,104 @@ void process_display_app_message(void *responder, window_data *data)
 
     // Send the serialized data
     zmq_send(responder, &serialized_size, sizeof(serialized_size), ZMQ_SNDMORE);
-    zmq_send(responder, serialized_data, serialized_size, 0);
+    zmq_send(responder, serialized_data, serialized_size, ZMQ_SNDMORE);
+
+    // Serialize the roach mover
+    char *serialized_roach_mover;
+    size_t serialized_roach_mover_size;
+    serialize_roach_mover(roach_mover, &serialized_roach_mover, &serialized_roach_mover_size);
+
+    log_write("Serialized roach mover size: %d\n", serialized_roach_mover_size);
+
+    if (serialized_roach_mover == NULL)
+    {
+        log_write("Failed to serialize roach mover!!!\n");
+        int error_code = -1; // Example error code
+        zmq_send(responder, &error_code, sizeof(error_code), 0);
+        return;
+    }
+
+    // Send the serialized data
+    zmq_send(responder, &serialized_roach_mover_size, sizeof(serialized_roach_mover_size), ZMQ_SNDMORE);
+    zmq_send(responder, serialized_roach_mover, serialized_roach_mover_size, ZMQ_SNDMORE);
+
+    // Serialize the lizard mover
+    char *serialized_lizard_mover;
+    size_t serialized_lizard_mover_size;
+    serialize_lizard_mover(lizard_mover, &serialized_lizard_mover, &serialized_lizard_mover_size);
+
+    log_write("Serialized lizard mover size: %d\n", serialized_lizard_mover_size);
+
+    if (serialized_lizard_mover == NULL)
+    {
+        log_write("Failed to serialize lizard mover!!!\n");
+        int error_code = -1; // Example error code
+        zmq_send(responder, &error_code, sizeof(error_code), 0);
+        return;
+    }
+
+    // Send the serialized data
+    zmq_send(responder, &serialized_lizard_mover_size, sizeof(serialized_lizard_mover_size), ZMQ_SNDMORE);
+    zmq_send(responder, serialized_lizard_mover, serialized_lizard_mover_size, 0);
 
     // Cleanup
     free(serialized_data);
+    free(serialized_roach_mover);
+    free(serialized_lizard_mover);
 }
 
-void process_lizard_connect(variable_that_lizard_need *lizard_payload)
+void publish_movement(void *publisher, message_to_server recv_message)
 {
-    // If there are available slots, add the lizard to the array
-    if (*(lizard_payload->slot_lizards) <= 0)
-    {
-        log_write("No more lizard slots available\n");
-        // Reply indicating failure adding the lizard
-        zmq_send(lizard_payload->responder, &failure, sizeof(int), 0);
-        return;
-    }
-    // Increment the number of lizards and decrement the available slots
-    (*(lizard_payload->num_lizards))++;
-    (*(lizard_payload->slot_lizards))--;
+    // Create field update message
+    field_update_movement field_update_message;
+    field_update_message.message = recv_message;
+    field_update_message.num_roaches = 10;
+    field_update_message.num_lizards = 10;
 
-    int id = *(lizard_payload->num_lizards) - 1;
-
-    // Initialize the lizard in a random position
-    lizard_payload->lizards[id].ch = (char)lizard_payload->recv_message;
-    lizard_payload->lizards[id].x = rand() % (WINDOW_SIZE - 2) + 1;
-    lizard_payload->lizards[id].x = rand() % (WINDOW_SIZE - 2) + 1;
-    lizard_payload->lizards[id].y = rand() % (WINDOW_SIZE - 2) + 1;
-    lizard_payload->lizards[id].score = 0;
-
-    // Draw the lizard in the random position
-    window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
-
-    // Reply indicating position of the lizard in the array
-    zmq_send(lizard_payload->responder, &id, sizeof(int), 0);
+    s_sendmore(publisher, "field_update_movement");
+    zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
-void process_lizard_movement(variable_that_lizard_need *lizard_payload)
+void publish_connect(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
-    // Move the specified lizard
-    log_write("Moving lizard %d\n", lizard_payload->recv_message->value);
-    int id = lizard_payload->recv_message->value;
-    direction_t direction = lizard_payload->recv_message->direction;
+    // Create field update message
+    log_write("Creating field update message\n");
+    field_update_connect field_update_message;
+    field_update_message.message = recv_message;
+    field_update_message.client_id = recv_message.client_id;
 
-    int new_x = lizard_payload->lizards[id].x;
-    int new_y = lizard_payload->lizards[id].y;
-    new_position(&new_x, &new_y, direction);
-
-    chtype ch = mvinch(new_x, new_y) & A_CHARTEXT;
-
-    if (ch != ' ' && ch != '.')
+    int id = 0;
+    switch (recv_message.client_id)
     {
-        log_write("Lizard %d collided with something %c\n", id, ch);
-        zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
-        return;
+    case LIZARD:
+        log_write("Publishing lizard connect\n");
+        log_write("Num lizards: %d\n", *(lizard_payload->num_lizards));
+        id = *(lizard_payload->num_lizards) - 1;
+        log_write("Id: %d\n", id);
+        field_update_message.position_in_array = id;
+        field_update_message.connected_lizard = lizard_payload->lizards[id];
+        break;
+    case ROACH:
+        id = *(roach_payload->num_roaches) - 1;
+        field_update_message.position_in_array = id;
+        field_update_message.connected_roach = roach_payload->roaches[id];
+        break;
     }
 
-    // Erase the lizard from the screen
-    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y);
-
-    // Update the lizard position
-    lizard_payload->lizards[id].x = new_x;
-    lizard_payload->lizards[id].y = new_y;
-
-    // Draw the lizard in the new position
-    window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
-
-    // Reply indicating success moving the lizard
-    zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
+    s_sendmore(publisher, "field_update_connect");
+    zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
-void process_lizard_disconnect(variable_that_lizard_need *lizard_payload)
+void publish_disconnect(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
-    int id = lizard_payload->recv_message->value;
-    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y);
-    zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
-    (*(lizard_payload->num_lizards))--;
-    (*(lizard_payload->slot_lizards))++;
-}
+    // Create field update message
+    field_update_disconnect field_update_message;
+    field_update_message.message = recv_message;
+    field_update_message.client_id = recv_message.client_id;
+    field_update_message.position_in_array = recv_message.value;
 
-void process_lizard_message(variable_that_lizard_need *lizard_payload)
-{
-    switch (lizard_payload->recv_message->type)
-    {
-        case CONNECT:
-            log_write("Processing lizard connect message\n");
-            process_lizard_connect(lizard_payload);
-            break;
-
-        case MOVEMENT:
-            log_write("Processing lizard movement message\n");
-            process_lizard_movement(lizard_payload);
-            break;
-
-        case DISCONNECT:
-            log_write("Processing lizard disconnect message\n");
-            process_lizard_disconnect(lizard_payload);
-            break;
-    }
-}
-
-void process_roach_connect(variable_that_roach_need *roach_payload)
-{
-    // If there are available slots, add the roach to the array
-    if (*(roach_payload->slot_roaches) <= 0)
-    {
-        log_write("No more roach slots available\n");
-        // Reply indicating failure adding the roach
-        zmq_send(roach_payload->responder, &failure, sizeof(int), 0);
-        return;
-    }
-    // Increment the number of roaches and decrement the available slots
-    (*(roach_payload->num_roaches))++;
-    (*(roach_payload->slot_roaches))--;
-
-    int id = *(roach_payload->num_roaches) - 1;
-
-    // Initialize the roach in a random position
-    roach_payload->roaches[id].ch = roach_payload->recv_message->value;
-    roach_payload->roaches[id].x = rand() % (WINDOW_SIZE - 2) + 1;
-    roach_payload->roaches[id].y = rand() % (WINDOW_SIZE - 2) + 1;
-
-    // Draw the roach in the random position
-    window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
-
-    // Reply indicating position of the roach in the array
-    zmq_send(roach_payload->responder, &id, sizeof(int), 0);
-}
-
-void process_roach_movement(variable_that_roach_need *roach_payload)
-{
-    // Move the specified roach
-    log_write("Moving roach %d\n", roach_payload->recv_message->value);
-    int id = roach_payload->recv_message->value;
-    direction_t direction = roach_payload->recv_message->direction;
-
-    int new_x = roach_payload->roaches[id].x;
-    int new_y = roach_payload->roaches[id].y;
-    new_position(&new_x, &new_y, direction);
-
-    chtype ch = mvinch(new_x, new_y) & A_CHARTEXT;
-
-    if (ch != ' ' && ch != '.')
-    {
-        log_write("Roach %d collided with something %c\n", id, ch);
-        zmq_send(roach_payload->responder, &success, sizeof(int), 0);
-        return;
-    }
-
-    // Erase the roach from the screen
-    window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y);
-
-    // Update the roach position
-    roach_payload->roaches[id].x = new_x;
-    roach_payload->roaches[id].y = new_y;
-
-    // Draw the roach in the new position
-    window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
-
-    // Reply indicating success moving the roach
-    zmq_send(roach_payload->responder, &success, sizeof(int), 0);
-}
-
-void process_roach_disconnect(variable_that_roach_need *roach_payload)
-{
-    int id = roach_payload->recv_message->value;
-    window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y);
-    zmq_send(roach_payload->responder, &success, sizeof(int), 0);
-    (*(roach_payload->num_roaches))--;
-    (*(roach_payload->slot_roaches))++;
-}
-
-void process_roach_message(variable_that_roach_need *roach_payload)
-{
-    switch (roach_payload->recv_message->type)
-    {
-        case CONNECT:
-            log_write("Processing roach connect message\n");
-            process_roach_connect(roach_payload);
-            break;
-
-        case MOVEMENT:
-            log_write("Processing roach movement message\n");
-            process_roach_movement(roach_payload);
-            break;
-
-        case DISCONNECT:
-            log_write("Processing roach disconnect message\n");
-            process_roach_disconnect(roach_payload);
-            break;
-    }
+    s_sendmore(publisher, "field_update_disconnect");
+    zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
 int main()
@@ -343,6 +201,16 @@ int main()
         return 1;
     }
 
+    // Bind to the PUB socket
+    if (zmq_bind(publisher, "tcp://*:5556") != 0)
+    {
+        printf("Failed to bind PUB socket: %s\n", zmq_strerror(errno));
+        zmq_close(responder);
+        zmq_close(publisher);
+        zmq_ctx_destroy(context);
+        return 1;
+    }
+
     // Initialize ncurses
     initscr();
     cbreak();
@@ -368,21 +236,15 @@ int main()
     // Seed random number generator
     srand(time(NULL));
 
-    variable_that_roach_need roach_payload;
-    roach_payload.num_roaches = &num_roaches;
-    roach_payload.slot_roaches = &slot_roaches;
-    roach_payload.roaches = roaches;
-    roach_payload.game_window = game_window;
-    roach_payload.responder = responder;
-    roach_payload.recv_message = &recv_message;
+    roach_mover *roach_payload = malloc(sizeof(roach_mover));
+    log_write("Creating roach mover\n");
+    new_roach_mover(&roach_payload, &recv_message, roaches, responder, &num_roaches, &slot_roaches, game_window);
+    roach_payload->should_use_responder = 1;
 
-    variable_that_lizard_need lizard_payload;
-    lizard_payload.num_lizards = &num_lizards;
-    lizard_payload.slot_lizards = &slot_lizards;
-    lizard_payload.lizards = lizards;
-    lizard_payload.game_window = game_window;
-    lizard_payload.responder = responder;
-    lizard_payload.recv_message = &recv_message;
+    log_write("Creating lizard mover\n");
+    lizard_mover *lizard_payload = malloc(sizeof(lizard_mover));
+    new_lizard_mover(&lizard_payload, &recv_message, lizards, responder, &num_lizards, &slot_lizards, game_window);
+    lizard_payload->should_use_responder = 1;
 
     while (1)
     {
@@ -392,23 +254,43 @@ int main()
 
         switch (recv_message.client_id)
         {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_message(&lizard_payload);
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                process_roach_message(&roach_payload);
-                break;
-            case DISPLAY_APP:
-                log_write("Processing display app message\n");
-                process_display_app_message(responder, game_window);
-                break;
-            default:
-                break;
+        case LIZARD:
+            log_write("Processing lizard message\n");
+            process_lizard_message(lizard_payload);
+            log_write("Processed lizard message\n");
+            log_write("Num lizards: %d\n", *(lizard_payload->num_lizards));
+            break;
+        case ROACH:
+            log_write("Processing roach message\n");
+            process_roach_message(roach_payload);
+            break;
+        case DISPLAY_APP:
+            log_write("Processing display app message\n");
+            process_display_app_message(responder, game_window, roach_payload, lizard_payload);
+            break;
+        default:
+            break;
         }
 
+        if (recv_message.client_id == DISPLAY_APP)
+            continue;
+
         // Publish the message to the display app
+        switch (recv_message.type)
+        {
+        case CONNECT:
+            log_write("Publishing connect\n");
+            publish_connect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        case MOVEMENT:
+            log_write("Publishing movement\n");
+            publish_movement(publisher, recv_message);
+            break;
+        case DISCONNECT:
+            log_write("Publishing disconnect\n");
+            publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        }
     }
 
     endwin();
