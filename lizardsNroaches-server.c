@@ -17,7 +17,6 @@
 #include "roach-mover.h"
 #include "lizard-mover.h"
 #include "util.h"
-#include "zhelpers.h"
 
 void print_constants()
 {
@@ -100,7 +99,7 @@ void publish_movement(void *publisher, message_to_server recv_message)
     field_update_message.num_roaches = 10;
     field_update_message.num_lizards = 10;
 
-    s_sendmore(publisher, "field_update_movement");
+    zmq_send(publisher, "field_update_movement", strlen("field_update_movement"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
@@ -130,7 +129,7 @@ void publish_connect(void *publisher, message_to_server recv_message, roach_move
         break;
     }
 
-    s_sendmore(publisher, "field_update_connect");
+    zmq_send(publisher, "field_update_connect", strlen("field_update_connect"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
@@ -142,7 +141,7 @@ void publish_disconnect(void *publisher, message_to_server recv_message, roach_m
     field_update_message.client_id = recv_message.client_id;
     field_update_message.position_in_array = recv_message.value;
 
-    s_sendmore(publisher, "field_update_disconnect");
+    zmq_send(publisher, "field_update_disconnect", strlen("field_update_disconnect"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 

@@ -15,7 +15,21 @@
 #include "window.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
-#include "zhelpers.h"
+
+static char *s_recv(void *socket)
+{
+    enum
+    {
+        cap = 256
+    };
+    char buffer[cap];
+    int size = zmq_recv(socket, buffer, cap - 1, 0);
+    if (size == -1)
+        return NULL;
+    buffer[size < cap ? size : cap - 1] = '\0';
+
+    return strndup(buffer, sizeof(buffer) - 1);
+}
 
 int main()
 {
