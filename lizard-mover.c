@@ -18,14 +18,34 @@ void new_lizard_mover(lizard_mover **lizard_payload,
 
 void process_lizard_connect(lizard_mover *lizard_payload)
 {
-    // If there are available slots, add the lizard to the array
+    int failure;
+
+    // If there are not available slots, refuse to add lizard
     if (*(lizard_payload->slot_lizards) <= 0)
     {
+        failure = -1;
         // Reply indicating failure adding the lizard
         if (lizard_payload->should_use_responder)
             zmq_send(lizard_payload->responder, &failure, sizeof(int), 0);
 
         return;
+    }
+
+    // If there is already a lizard with chosen character, refuse to add lizard
+    char new_lizard_char = lizard_payload->recv_message->value;
+
+    // Check if there is already a lizard with the chosen character
+    for (int i = 0; i < *(lizard_payload->num_lizards); i++)
+    {
+        failure = -2;
+        if (lizard_payload->lizards[i].ch == new_lizard_char)
+        {
+            // Reply indicating failure adding the lizard
+            if (lizard_payload->should_use_responder)
+                zmq_send(lizard_payload->responder, &failure, sizeof(int), 0);
+
+            return;
+        }
     }
 
     // Get the id of the new lizard
@@ -89,7 +109,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     }
 
     // Erase the lizard from the screen
-    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y);
+    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
 
     // Update the lizard position
     lizard_payload->lizards[id].x = new_x;
@@ -99,7 +119,8 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
 
     // Reply indicating success moving the lizard
-    if (lizard_payload->should_use_responder) {
+    if (lizard_payload->should_use_responder)
+    {
         score = lizard_payload->lizards[id].score;
         zmq_send(lizard_payload->responder, &score, sizeof(int), 0);
     }
@@ -108,7 +129,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 void process_lizard_disconnect(lizard_mover *lizard_payload)
 {
     int id = lizard_payload->recv_message->value;
-    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y);
+    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
     if (lizard_payload->should_use_responder)
         zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
     (*(lizard_payload->num_lizards))--;

@@ -253,22 +253,22 @@ int main()
 
         switch (recv_message.client_id)
         {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_message(lizard_payload);
-                log_write("Processed lizard message\n");
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                process_roach_message(roach_payload);
-                break;
-            case DISPLAY_APP:
-                log_write("Processing display app message\n");
-                process_display_app_message(responder, game_window, roach_payload, lizard_payload);
-                log_write("Processed display app message\n");
-                break;
-            default:
-                break;
+        case LIZARD:
+            log_write("Processing lizard message\n");
+            process_lizard_message(lizard_payload);
+            log_write("Processed lizard message\n");
+            break;
+        case ROACH:
+            log_write("Processing roach message\n");
+            process_roach_message(roach_payload);
+            break;
+        case DISPLAY_APP:
+            log_write("Processing display app message\n");
+            process_display_app_message(responder, game_window, roach_payload, lizard_payload);
+            log_write("Processed display app message\n");
+            break;
+        default:
+            break;
         }
 
         if (recv_message.client_id == DISPLAY_APP)
@@ -277,18 +277,18 @@ int main()
         // Publish the message to the display app
         switch (recv_message.type)
         {
-            case CONNECT:
-                log_write("Publishing connect\n");
-                publish_connect(publisher, recv_message, roach_payload, lizard_payload);
-                break;
-            case MOVEMENT:
-                log_write("Publishing movement\n");
-                publish_movement(publisher, recv_message);
-                break;
-            case DISCONNECT:
-                log_write("Publishing disconnect\n");
-                publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
-                break;
+        case CONNECT:
+            log_write("Publishing connect\n");
+            publish_connect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        case MOVEMENT:
+            log_write("Publishing movement\n");
+            publish_movement(publisher, recv_message);
+            break;
+        case DISCONNECT:
+            log_write("Publishing disconnect\n");
+            publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
         }
     }
 
@@ -296,7 +296,7 @@ int main()
 
     zmq_close(responder);
     zmq_ctx_destroy(context);
-    
+
     log_close();
 
     return 0;

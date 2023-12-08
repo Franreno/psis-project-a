@@ -50,3 +50,11 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+
+*.log
+# General rule for files without extension (use carefully)
+# Warning: This will ignore all files without an extension
+!makefile
+!Makefile
+*.*

@@ -92,18 +92,25 @@ int connect_lizard(void *requester, message_to_server *send_message)
     // Server replies with either failure or the assigned lizard id
     zmq_recv(requester, &reply, sizeof(int), 0);
 
-    // If the server replies with failure, return failure
-    if (reply == FAILURE)
+    // If the server replies with -1, no more slots for lizards are available
+    if (reply == -1)
     {
         printf("Failed to connect lizard! No more slots available\n");
-        return FAILURE;
     }
+
+    // If the server replies with -2, there's already a lizard with that character
+    else if (reply == -2)
+    {
+        printf("Failed to connect lizard! There's already a lizard with that character\n");
+    }
+
     // If the server replies with a lizard id, return the id
     else
     {
         printf("Lizard connected with id: %d\n", reply);
-        return reply;
     }
+
+    return reply;
 }
 
 void move_lizard(int lizard_id, void *requester, message_to_server *send_message, volatile sig_atomic_t *stop)
@@ -129,24 +136,24 @@ void move_lizard(int lizard_id, void *requester, message_to_server *send_message
         // Check if the character is an arrow key, 'q' or 'Q'
         switch (ch)
         {
-            case KEY_UP:
-                send_message->direction = UP;
-                break;
-            case KEY_DOWN:
-                send_message->direction = DOWN;
-                break;
-            case KEY_LEFT:
-                send_message->direction = LEFT;
-                break;
-            case KEY_RIGHT:
-                send_message->direction = RIGHT;
-                break;
-            case 'q':
-            case 'Q':
-                *stop = 1;
-                break;
-            default:
-                continue;
+        case KEY_UP:
+            send_message->direction = UP;
+            break;
+        case KEY_DOWN:
+            send_message->direction = DOWN;
+            break;
+        case KEY_LEFT:
+            send_message->direction = LEFT;
+            break;
+        case KEY_RIGHT:
+            send_message->direction = RIGHT;
+            break;
+        case 'q':
+        case 'Q':
+            *stop = 1;
+            break;
+        default:
+            continue;
         }
 
         // Send lizard movement message to server
@@ -201,7 +208,7 @@ int main(int argc, char *argv[])
 
     // Create lizard and connect it to the server
     int lizard_id = connect_lizard(requester, &send_message);
-    if (lizard_id == FAILURE)
+    if (lizard_id < 0)
     {
         zmq_close(requester);
         zmq_ctx_destroy(context);

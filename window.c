@@ -67,32 +67,72 @@ void init_window_matrix(window_matrix *matrix, int width, int height)
     }
 }
 
-// This function pushes a new character onto the stack at a given position
+int get_char_priority(char ch)
+{
+    if (isalpha(ch))
+        return 3;
+    if (isdigit(ch))
+        return 2;
+    if (ch == '.' || ch == '*')
+        return 1;
+    return 0;
+}
+
 void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch)
 {
     int index = INDEX(matrix->width, x, y);
     layer_cell *cell = &matrix->cells[index];
+    int priority = get_char_priority(ch);
 
     // Check if we need to increase the capacity of the stack
-    if (cell->top == cell->capacity - 1)
+    if (cell->top >= cell->capacity - 1)
     {
         // Increase the capacity of the stack
-        int new_capacity = cell->capacity + 1; // Or more, if you expect many layers
-        cell->stack = realloc(cell->stack, new_capacity * sizeof(layer_char));
+        int new_capacity = (cell->capacity == 0) ? 2 : (cell->capacity * 2);
+        layer_char *new_stack = realloc(cell->stack, new_capacity * sizeof(layer_char));
+        if (!new_stack)
+        {
+            exit(EXIT_FAILURE);
+        }
+        cell->stack = new_stack;
         cell->capacity = new_capacity;
     }
 
-    // Push the new character onto the stack
-    cell->top++;
-    cell->stack[cell->top].ch = ch;
+    // If the stack is empty or the new character has the highest priority, add it to the top
+    if (cell->top == -1 || get_char_priority(cell->stack[cell->top].ch) <= priority)
+    {
+        cell->top++;
+        cell->stack[cell->top].ch = ch;
+    }
+    else
+    {
+        // Find the correct position to insert the new character
+        int insert_pos;
+        for (insert_pos = cell->top; insert_pos >= 0; insert_pos--)
+        {
+            if (get_char_priority(cell->stack[insert_pos].ch) >= priority)
+                cell->stack[insert_pos + 1] = cell->stack[insert_pos]; // Shift character up
+            else
+                break; // Found the insert position
+        }
+        cell->stack[insert_pos + 1].ch = ch; // Insert the new character
+        cell->top++;
+    }
 }
 
-// This function updates the ncurses window to show the top character of the stack at a given position
 void window_draw(window_data *data, int x, int y, char ch)
 {
+    // Add the character to the stack with priority
     window_matrix_add_char(data->matrix, x, y, ch);
+
+    // Always draw the top character from the stack at the specified position
+    int index = INDEX(data->matrix->width, x, y);
+    layer_cell *cell = &data->matrix->cells[index];
+    char top_char = (cell->top >= 0) ? cell->stack[cell->top].ch : ' ';
+
+    // Move to the position and draw the top character
     wmove(data->win, x, y);
-    waddch(data->win, ch | A_BOLD);
+    waddch(data->win, top_char | A_BOLD);
     wrefresh(data->win);
 }
 
@@ -105,7 +145,7 @@ char window_matrix_peek_below_top_char(window_matrix *matrix, int x, int y)
     if (cell->top > 0)
     {
         // Peek at the character below the top character
-        char ch = cell->stack[cell->top - 1].ch;
+        char ch = cell->stack[cell->top].ch;
         return ch;
     }
     return ' '; // Return a space if the stack is empty or has only one element
@@ -129,21 +169,57 @@ char window_matrix_remove_top_char(window_matrix *matrix, int x, int y)
     return ' '; // Return a space if the stack is empty
 }
 
-// This function erases the top character at a given position and updates the ncurses window to show the next character in the stack
-void window_erase(window_data *data, int x, int y)
+void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, char ch)
 {
-    // Peek at the character below the top character
-    char ch_below = window_matrix_peek_below_top_char(data->matrix, x, y);
+    int index = INDEX(matrix->width, x, y);
+    layer_cell *cell = &matrix->cells[index];
 
-    // Remove the top character from the stack
-    window_matrix_remove_top_char(data->matrix, x, y);
+    // Check if the character exists in the stack and find its position
+    int pos = -1;
+    for (int i = 0; i <= cell->top; i++)
+    {
+        if (cell->stack[i].ch == ch)
+        {
+            pos = i;
+            break;
+        }
+    }
 
+    // If the character was found, remove it and shift others down
+    if (pos != -1)
+    {
+        for (int i = pos; i < cell->top; i++)
+        {
+            cell->stack[i] = cell->stack[i + 1];
+        }
+        cell->top--;
+    }
+}
+void window_erase(window_data *data, int x, int y, char ch)
+{
+    // Remove the specified character from the stack
+    window_matrix_remove_char_from_stack(data->matrix, x, y, ch);
+
+    // Determine the index in the matrix for the cell at (x, y)
+    int cell_index = INDEX(data->matrix->width, x, y);
+
+    // Determine if there is any character left on the top of the stack
+    char new_top_char = ' '; // Default to space if the stack is empty
+    if (data->matrix->cells[cell_index].top >= 0)
+    {
+        new_top_char = data->matrix->cells[cell_index].stack[data->matrix->cells[cell_index].top].ch;
+    }
+
+    // Move to the position in the ncurses window
     wmove(data->win, x, y);
-    if (ch_below != ' ')
-        waddch(data->win, ch_below | A_BOLD);
-    else
-        waddch(data->win, ' ');
 
+    // Draw the new top character or clear the cell
+    if (new_top_char != ' ')
+        waddch(data->win, new_top_char | A_BOLD);
+    else
+        waddch(data->win, ' '); // Clear the cell if the stack is empty
+
+    // Refresh the window to reflect changes
     wrefresh(data->win);
 }
 

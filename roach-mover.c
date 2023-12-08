@@ -98,7 +98,7 @@ void process_roach_movement(roach_mover *roach_payload)
     }
 
     // Erase the roach from the screen
-    window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y);
+    window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
 
     // Update the roach position
     roach_payload->roaches[id].x = new_x;
@@ -115,7 +115,7 @@ void process_roach_movement(roach_mover *roach_payload)
 void process_roach_disconnect(roach_mover *roach_payload)
 {
     int id = roach_payload->recv_message->value;
-    window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y);
+    window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
     zmq_send(roach_payload->responder, &success, sizeof(int), 0);
     (*(roach_payload->num_roaches))--;
     (*(roach_payload->slot_roaches))++;
