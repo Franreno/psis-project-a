@@ -56,7 +56,7 @@ void process_roach_connect(roach_mover *roach_payload)
     roach_payload->roaches[id].y = rand() % (WINDOW_SIZE - 2) + 1;
 
     // Draw the roach in the random position
-    window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
+    window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD, ROACH, id);
 
     // Reply indicating position of the roach in the array
     if (roach_payload->should_use_responder)
@@ -75,7 +75,7 @@ void process_roach_inject_connect(roach_mover *roach_payload, roach connected_ro
     // Initialize the roach in a received position
     roach_payload->roaches[received_id] = connected_roach;
 
-    window_draw(roach_payload->game_window, roach_payload->roaches[received_id].x, roach_payload->roaches[received_id].y, (roach_payload->roaches[received_id].ch + 48) | A_BOLD);
+    window_draw(roach_payload->game_window, roach_payload->roaches[received_id].x, roach_payload->roaches[received_id].y, (roach_payload->roaches[received_id].ch + 48) | A_BOLD, ROACH, received_id);
 }
 
 void process_roach_movement(roach_mover *roach_payload)
@@ -87,6 +87,13 @@ void process_roach_movement(roach_mover *roach_payload)
     int new_x = roach_payload->roaches[id].x;
     int new_y = roach_payload->roaches[id].y;
     new_position(&new_x, &new_y, direction);
+
+    if (roach_payload->roaches[id].is_eaten)
+    {
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+        return;
+    }
 
     chtype ch = mvinch(new_x, new_y) & A_CHARTEXT;
 
@@ -105,7 +112,7 @@ void process_roach_movement(roach_mover *roach_payload)
     roach_payload->roaches[id].y = new_y;
 
     // Draw the roach in the new position
-    window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
+    window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD, ROACH, id);
 
     // Reply indicating success moving the roach
     if (roach_payload->should_use_responder)
