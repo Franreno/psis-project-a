@@ -40,7 +40,8 @@ void process_roach_connect(roach_mover *roach_payload)
     if (*(roach_payload->slot_roaches) <= 0)
     {
         // Reply indicating failure adding the roach
-        zmq_send(roach_payload->responder, &failure, sizeof(int), 0);
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &failure, sizeof(int), 0);
         return;
     }
     // Increment the number of roaches and decrement the available slots
@@ -58,7 +59,23 @@ void process_roach_connect(roach_mover *roach_payload)
     window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
 
     // Reply indicating position of the roach in the array
-    zmq_send(roach_payload->responder, &id, sizeof(int), 0);
+    if (roach_payload->should_use_responder)
+        zmq_send(roach_payload->responder, &id, sizeof(int), 0);
+}
+
+void process_roach_inject_connect(roach_mover *roach_payload, roach connected_roach, int received_id)
+{
+    // Inject means it was received from the server, if received
+    // from the server, we don't need to reply, and don't need to check for slots
+
+    // Increment the number of roaches and decrement the available slots
+    (*(roach_payload->num_roaches))++;
+    (*(roach_payload->slot_roaches))--;
+
+    // Initialize the roach in a received position
+    roach_payload->roaches[received_id] = connected_roach;
+
+    window_draw(roach_payload->game_window, roach_payload->roaches[received_id].x, roach_payload->roaches[received_id].y, (roach_payload->roaches[received_id].ch + 48) | A_BOLD);
 }
 
 void process_roach_movement(roach_mover *roach_payload)
@@ -75,7 +92,8 @@ void process_roach_movement(roach_mover *roach_payload)
 
     if (ch != ' ' && ch != '.')
     {
-        zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &success, sizeof(int), 0);
         return;
     }
 
@@ -90,7 +108,8 @@ void process_roach_movement(roach_mover *roach_payload)
     window_draw(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
 
     // Reply indicating success moving the roach
-    zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+    if (roach_payload->should_use_responder)
+        zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 }
 
 void process_roach_disconnect(roach_mover *roach_payload)
@@ -100,4 +119,83 @@ void process_roach_disconnect(roach_mover *roach_payload)
     zmq_send(roach_payload->responder, &success, sizeof(int), 0);
     (*(roach_payload->num_roaches))--;
     (*(roach_payload->slot_roaches))++;
+}
+void serialize_roach_mover(roach_mover *roach_payload, char **buffer, size_t *buffer_size)
+{
+    // Calculate the size of the buffer
+    *buffer_size = sizeof(int) * 2; // num_roaches and slot_roaches
+
+    int num_roaches = *(roach_payload->num_roaches);
+    *buffer_size += (sizeof(char) + 2 * sizeof(int)) * num_roaches; // Each roach
+
+    *buffer = malloc(*buffer_size);
+    if (!*buffer)
+    {
+        exit(1);
+    }
+
+    char *ptr = *buffer;
+
+    // Serialize num_roaches and slot_roaches
+    memcpy(ptr, roach_payload->num_roaches, sizeof(int));
+    ptr += sizeof(int);
+    memcpy(ptr, roach_payload->slot_roaches, sizeof(int));
+    ptr += sizeof(int);
+
+    // Serialize each roach
+    for (int i = 0; i < num_roaches; i++)
+    {
+        memcpy(ptr, &(roach_payload->roaches[i].ch), sizeof(char));
+        ptr += sizeof(char);
+        memcpy(ptr, &(roach_payload->roaches[i].x), sizeof(int));
+        ptr += sizeof(int);
+        memcpy(ptr, &(roach_payload->roaches[i].y), sizeof(int));
+        ptr += sizeof(int);
+    }
+}
+
+void deserialize_roach_mover(roach_mover *roach_payload, char *buffer)
+{
+    char *ptr = buffer;
+
+    // Allocate memory for num_roaches and slot_roaches
+    roach_payload->num_roaches = malloc(sizeof(int));
+    roach_payload->slot_roaches = malloc(sizeof(int));
+
+    if (!roach_payload->num_roaches || !roach_payload->slot_roaches)
+    {
+        // Free allocated memory if one of them failed
+        free(roach_payload->num_roaches);
+        free(roach_payload->slot_roaches);
+        return;
+    }
+
+    // Deserialize num_roaches
+    memcpy(roach_payload->num_roaches, ptr, sizeof(int));
+    ptr += sizeof(int);
+
+    // Deserialize slot_roaches
+    memcpy(roach_payload->slot_roaches, ptr, sizeof(int));
+    ptr += sizeof(int);
+
+    // Allocate memory for roaches array
+    int num_roaches = *(roach_payload->num_roaches);
+    roach_payload->roaches = malloc(sizeof(roach) * MAX_ROACHES_ALLOWED);
+    if (!roach_payload->roaches)
+    {
+        free(roach_payload->num_roaches);
+        free(roach_payload->slot_roaches);
+        return;
+    }
+
+    // Deserialize each roach
+    for (int i = 0; i < num_roaches; i++)
+    {
+        memcpy(&(roach_payload->roaches[i].ch), ptr, sizeof(char));
+        ptr += sizeof(char);
+        memcpy(&(roach_payload->roaches[i].x), ptr, sizeof(int));
+        ptr += sizeof(int);
+        memcpy(&(roach_payload->roaches[i].y), ptr, sizeof(int));
+        ptr += sizeof(int);
+    }
 }

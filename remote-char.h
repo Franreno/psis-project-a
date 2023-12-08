@@ -10,7 +10,7 @@
 #define ROACH_MOVE_CHANCE 50
 #define MAX_ROACH_SCORE 5
 #define MAX_ROACHES_GENERATED 10
-#define MAX_ROACHES_ALLOWED (WINDOW_SIZE*WINDOW_SIZE/3)
+#define MAX_ROACHES_ALLOWED (WINDOW_SIZE * WINDOW_SIZE / 3)
 #define MAX_LIZARDS_ALLOWED 10
 
 typedef enum direction_t
@@ -61,14 +61,27 @@ typedef struct roach
     int y;
 } roach;
 
-typedef struct cell_state
+typedef struct field_update_movement
 {
-    char ch;
-} cell_state;
+    int num_roaches;
+    int num_lizards;
+    message_to_server message;
+} field_update_movement;
 
-typedef struct board_state
+typedef struct field_update_connect
 {
-    cell_state cells[WINDOW_SIZE][WINDOW_SIZE];
-} board_state;
+    int client_id;
+    int position_in_array;
+    lizard connected_lizard;
+    roach connected_roach;
+    message_to_server message;
+} field_update_connect;
+
+typedef struct field_update_disconnect
+{
+    int client_id;
+    int position_in_array;
+    message_to_server message;
+} field_update_disconnect;
 
 #endif
