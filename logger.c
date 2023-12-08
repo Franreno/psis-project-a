@@ -4,7 +4,7 @@ static FILE *log_file = NULL;
 
 void log_init(const char *filename)
 {
-    log_file = fopen(filename, "a"); // "a" to append to the file if it exists
+    log_file = fopen(filename, "a");
     if (log_file == NULL)
     {
         perror("Error opening log file");

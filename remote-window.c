@@ -1,4 +1,3 @@
-
 #include <ncurses.h>
 #include <zmq.h>
 #include "remote-char.h"
@@ -7,6 +6,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+
 #define WINDOW_SIZE 15
 
 int main()

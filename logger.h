@@ -8,4 +8,4 @@ void log_init(const char *filename);
 void log_write(const char *format, ...);
 void log_close();
 
-#endif // LOG_H
+#endif

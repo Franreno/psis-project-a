@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <zmq.h>
 #include "util.h"
-#include "window.h"
 #include "remote-char.h"
+#include "window.h"
 
 typedef struct lizard_mover
 {
@@ -27,4 +27,5 @@ void process_lizard_movement(lizard_mover *lizard_payload);
 void process_lizard_disconnect(lizard_mover *lizard_payload);
 void serialize_lizard_mover(lizard_mover *lizard_payload, char **buffer, size_t *buffer_size);
 void deserialize_lizard_mover(lizard_mover *lizard_payload, char *buffer);
+
 #endif
