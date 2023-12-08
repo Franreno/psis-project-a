@@ -67,6 +67,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 {
     // Move the specified lizard
     int id = lizard_payload->recv_message->value;
+    int score = lizard_payload->lizards[id].score;
     direction_t direction = lizard_payload->recv_message->direction;
 
     int new_x = lizard_payload->lizards[id].x;
@@ -94,8 +95,10 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
 
     // Reply indicating success moving the lizard
-    if (lizard_payload->should_use_responder)
-        zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
+    if (lizard_payload->should_use_responder) {
+        score = lizard_payload->lizards[id].score;
+        zmq_send(lizard_payload->responder, &score, sizeof(int), 0);
+    }
 }
 
 void process_lizard_disconnect(lizard_mover *lizard_payload)

@@ -155,8 +155,14 @@ void move_lizard(int lizard_id, void *requester, message_to_server *send_message
         // Server replies with lizard score after the movement
         zmq_recv(requester, &reply, sizeof(int), 0);
 
+        // Move the cursor to the beginning of the line
+        move(0, 0);
+
         // Print the lizards score
-        printw("Current lizard score: %d\n", reply);
+        printw("Your Lizard's score is %d!", reply);
+
+        // Clear the rest of the line
+        clrtoeol();
 
         // Refresh the screen to show the new content
         refresh();
