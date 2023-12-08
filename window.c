@@ -78,7 +78,7 @@ int get_char_priority(char ch)
     return 0;
 }
 
-void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch)
+void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int client_id, int position_in_array)
 {
     int index = INDEX(matrix->width, x, y);
     layer_cell *cell = &matrix->cells[index];
@@ -103,6 +103,8 @@ void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch)
     {
         cell->top++;
         cell->stack[cell->top].ch = ch;
+        cell->stack[cell->top].client_id = client_id;
+        cell->stack[cell->top].position_in_array = position_in_array;
     }
     else
     {
@@ -115,15 +117,18 @@ void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch)
             else
                 break; // Found the insert position
         }
-        cell->stack[insert_pos + 1].ch = ch; // Insert the new character
+        // Insert the new character
+        cell->stack[insert_pos + 1].ch = ch;
+        cell->stack[insert_pos + 1].position_in_array = position_in_array;
+        cell->stack[insert_pos + 1].client_id = client_id;
         cell->top++;
     }
 }
 
-void window_draw(window_data *data, int x, int y, char ch)
+void window_draw(window_data *data, int x, int y, char ch, int client_id, int position_in_array)
 {
     // Add the character to the stack with priority
-    window_matrix_add_char(data->matrix, x, y, ch);
+    window_matrix_add_char(data->matrix, x, y, ch, client_id, position_in_array);
 
     // Always draw the top character from the stack at the specified position
     int index = INDEX(data->matrix->width, x, y);
@@ -244,6 +249,12 @@ void window_destroy(window_data *data)
         free(data);
     }
     endwin();
+}
+
+layer_cell *get_cell(window_matrix *matrix, int x, int y)
+{
+    int index = INDEX(matrix->width, x, y);
+    return &matrix->cells[index];
 }
 
 void free_window_matrix(window_matrix *matrix)

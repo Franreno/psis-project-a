@@ -14,6 +14,9 @@
 #define MAX_ROACHES_GENERATED 10
 #define MAX_ROACHES_ALLOWED (WINDOW_SIZE * WINDOW_SIZE / 3)
 #define MAX_LIZARDS_ALLOWED 10
+#define MAX_LIZARD_SCORE 50
+
+#include <time.h>
 
 typedef enum direction_t
 {
@@ -54,6 +57,7 @@ typedef struct lizard
     int score;
     int prev_x;
     int prev_y;
+    char is_winner;
 } lizard;
 
 typedef struct roach
@@ -61,6 +65,10 @@ typedef struct roach
     char ch;
     int x;
     int y;
+    // If roach was eaten
+    char is_eaten;
+    // Timestamp of when the roach was eaten
+    time_t timestamp;
 } roach;
 
 typedef struct field_update_movement

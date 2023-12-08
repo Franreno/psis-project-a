@@ -11,10 +11,13 @@ typedef struct roach_mover
 {
     message_to_server *recv_message;
     roach *roaches;
+    lizard *lizards;
     void *responder;
     int *num_roaches;
     int *slot_roaches;
     window_data *game_window;
+    roach **eaten_roaches;
+    int *amount_eaten_roaches;
 
     char should_use_responder;
 } roach_mover;

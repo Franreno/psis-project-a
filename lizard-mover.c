@@ -62,7 +62,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     lizard_payload->lizards[id].score = 0;
 
     // Draw the lizard in the random position
-    window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
+    window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD, LIZARD, id);
 
     // TODO - DRAW LIZARDS TAIL
 
@@ -84,7 +84,99 @@ void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connecte
     lizard_payload->lizards[received_id] = connected_lizard;
 
     // Draw the lizard in the received position
-    window_draw(lizard_payload->game_window, lizard_payload->lizards[received_id].x, lizard_payload->lizards[received_id].y, (lizard_payload->lizards[received_id].ch) | A_BOLD);
+    window_draw(lizard_payload->game_window, lizard_payload->lizards[received_id].x, lizard_payload->lizards[received_id].y, (lizard_payload->lizards[received_id].ch) | A_BOLD, LIZARD, received_id);
+}
+
+int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new_y)
+{
+    // Need to check the stack content of the new position!
+    // The stack data should contain the type of element and its position on lizards/roaches array
+
+    // First, get the stack content of the new position
+    int id = lizard_payload->recv_message->value;
+    direction_t direction = lizard_payload->recv_message->direction;
+
+    *new_x = lizard_payload->lizards[id].x;
+    *new_y = lizard_payload->lizards[id].y;
+    new_position(new_x, new_y, direction);
+
+    // Get the stack of the new position
+    layer_cell *cell = get_cell(lizard_payload->game_window->matrix, *new_x, *new_y);
+
+    // If the stack is empty, just move the lizard
+    if (cell->top == -1)
+        return 0;
+
+    // If the stack is not empty, check the element
+
+    // First check if there is another lizard in the stack
+    // As we have a priority stack, the lizard should always be on top!
+    if (isalpha(cell->stack[cell->top].ch))
+    {
+        // TODO - LIZARD COLISION
+        // Lizard shouldnt move
+        return 1;
+    }
+    // Check the stack for presence of roaches (digits), count all of the roaches and save their position and value
+    // Array of roaches values
+    char *roaches = (char *)malloc(sizeof(char) * cell->capacity);
+    int *roaches_positions = (int *)malloc(sizeof(int) * cell->capacity);
+    int num_roaches = 0;
+
+    // Iterate through the stack
+    for (int i = cell->top; i >= 0; i--)
+    {
+        // If the element is a roach, save its value and position
+        if (cell->stack[i].client_id == ROACH)
+        {
+            roaches[num_roaches] = cell->stack[i].ch;
+            roaches_positions[num_roaches] = cell->stack[i].position_in_array;
+            num_roaches++;
+        }
+    }
+
+    // If there are no roaches, just move the lizard
+    if (num_roaches == 0)
+    {
+        free(roaches);
+        free(roaches_positions);
+        return 0;
+    }
+
+    // If there are roaches, the lizzard should eat them all
+
+    int lizard_update_score = 0;
+    // First, mark the roaches as eaten, use the roaches positions
+    for (int i = 0; i < num_roaches; i++)
+    {
+        // Remove the roach from the stack
+        window_matrix_remove_char_from_stack(lizard_payload->game_window->matrix, *new_x, *new_y, roaches[i]);
+
+        // Mark the roach as eaten
+        lizard_payload->roaches[roaches_positions[i]].is_eaten = 1;
+        lizard_payload->roaches[roaches_positions[i]].timestamp = time(NULL);
+        // Point to the eaten roaches
+        lizard_payload->eaten_roaches[*lizard_payload->amount_eaten_roaches] = &lizard_payload->roaches[roaches_positions[i]];
+        (*(lizard_payload->amount_eaten_roaches))++;
+
+        // Increase the lizard score
+        lizard_update_score += roaches[i] - '0';
+    }
+
+    // Update the lizard score
+    lizard_payload->lizards[id].score += lizard_update_score;
+
+    // Check if the lizard has reached the maximum score
+    if (lizard_payload->lizards[id].score >= MAX_LIZARD_SCORE)
+    {
+        // Mark the lizard as a winner
+        lizard_payload->lizards[id].is_winner = 1;
+    }
+
+    // Return the lizard update score
+    free(roaches);
+    free(roaches_positions);
+    return 0;
 }
 
 void process_lizard_movement(lizard_mover *lizard_payload)
@@ -92,15 +184,14 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     // Move the specified lizard
     int id = lizard_payload->recv_message->value;
     int score = lizard_payload->lizards[id].score;
-    direction_t direction = lizard_payload->recv_message->direction;
 
-    int new_x = lizard_payload->lizards[id].x;
-    int new_y = lizard_payload->lizards[id].y;
-    new_position(&new_x, &new_y, direction);
+    int new_x;
+    int new_y;
 
-    chtype ch = mvinch(new_x, new_y) & A_CHARTEXT;
+    // Calculate lizard movement
+    int should_move = calculate_lizard_movement(lizard_payload, &new_x, &new_y);
 
-    if (ch != ' ' && ch != '.')
+    if (should_move != 0)
     {
         // Reply indicating failure moving the lizard
         if (lizard_payload->should_use_responder)
@@ -116,7 +207,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     lizard_payload->lizards[id].y = new_y;
 
     // Draw the lizard in the new position
-    window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
+    window_draw(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD, LIZARD, id);
 
     // Reply indicating success moving the lizard
     if (lizard_payload->should_use_responder)

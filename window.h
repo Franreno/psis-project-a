@@ -12,6 +12,10 @@
 typedef struct layer_char
 {
     char ch;
+    // The client_id is used to identify if it's a lizard or a roach
+    int client_id;
+    // The position_in_array is used to identify the position of this element in the roaches/lizards array
+    int position_in_array;
 } layer_char;
 
 typedef struct layer_cell
@@ -36,7 +40,7 @@ typedef struct window_data
 
 // Function prototypes
 void window_init(window_data **game_window, int width, int height);
-void window_draw(window_data *game_window, int x, int y, char ch);
+void window_draw(window_data *data, int x, int y, char ch, int client_id, int position_in_array);
 void window_erase(window_data *game_window, int x, int y, char ch);
 void window_refresh(window_data *game_window);
 void window_destroy(window_data *game_window);
@@ -46,7 +50,7 @@ void init_window_matrix(window_matrix *matrix, int width, int height);
 void free_window_matrix(window_matrix *matrix);
 int get_char_priority(char ch);
 char window_matrix_remove_char(window_matrix *matrix, int x, int y);
-void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch);
+void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int client_id, int position_in_array);
 char window_matrix_peek_below_top_char(window_matrix *matrix, int x, int y);
 void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffer_size);
 void deserialize_window_matrix(window_matrix *matrix, char *buffer);
@@ -54,5 +58,6 @@ void window_init_with_matrix(window_data **data, int width, int height, char *se
 void draw_entire_matrix(window_data *data);
 void print_window_matrix(window_matrix *matrix);
 void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, char ch);
+layer_cell *get_cell(window_matrix *matrix, int x, int y);
 
 #endif

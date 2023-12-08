@@ -145,6 +145,25 @@ void publish_disconnect(void *publisher, message_to_server recv_message, roach_m
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
+void respawn_eaten_roaches(roach **eaten_roaches, int *amount_eaten_roaches)
+{
+    time_t current_time = time(NULL);
+
+    roach *eaten_roach;
+    for (int i = 0; i < *amount_eaten_roaches; i++)
+    {
+        eaten_roach = eaten_roaches[i];
+
+        if (eaten_roach->is_eaten && difftime(current_time, eaten_roach->timestamp) >= 5)
+        {
+            eaten_roach->is_eaten = 0;
+            eaten_roach->x = rand() % (WINDOW_SIZE - 2) + 1;
+            eaten_roach->y = rand() % (WINDOW_SIZE - 2) + 1;
+            eaten_roach->timestamp = 0;
+        }
+    }
+}
+
 int main()
 {
     // Print the parameters the server is running with
@@ -245,11 +264,25 @@ int main()
     new_lizard_mover(&lizard_payload, &recv_message, lizards, responder, &num_lizards, &slot_lizards, game_window);
     lizard_payload->should_use_responder = 1;
 
+    roach_payload->lizards = lizards;
+    lizard_payload->roaches = roaches;
+
+    // Create eaten roaches pointer
+    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
+    int eaten_roaches_count = 0;
+
+    roach_payload->eaten_roaches = eaten_roaches;
+    roach_payload->amount_eaten_roaches = &eaten_roaches_count;
+    lizard_payload->eaten_roaches = eaten_roaches;
+    lizard_payload->amount_eaten_roaches = &eaten_roaches_count;
+
     while (1)
     {
         // Receive message from one of the clients
         zmq_recv(responder, &recv_message, sizeof(message_to_server), 0);
         log_write("Received message from client %d\n", recv_message.client_id);
+
+        respawn_eaten_roaches(eaten_roaches, &eaten_roaches_count);
 
         switch (recv_message.client_id)
         {
@@ -297,6 +330,7 @@ int main()
     zmq_close(responder);
     zmq_ctx_destroy(context);
 
+    free(eaten_roaches);
     log_close();
 
     return 0;
