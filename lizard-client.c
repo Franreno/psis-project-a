@@ -126,24 +126,24 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message,
         // Check if the character is an arrow key, 'q' or 'Q'
         switch (ch)
         {
-            case KEY_UP:
-                send_message->direction = UP;
-                break;
-            case KEY_DOWN:
-                send_message->direction = DOWN;
-                break;
-            case KEY_LEFT:
-                send_message->direction = LEFT;
-                break;
-            case KEY_RIGHT:
-                send_message->direction = RIGHT;
-                break;
-            case 'q':
-            case 'Q':
-                *stop = 1;
-                break;
-            default:
-                continue;
+        case KEY_UP:
+            send_message->direction = UP;
+            break;
+        case KEY_DOWN:
+            send_message->direction = DOWN;
+            break;
+        case KEY_LEFT:
+            send_message->direction = LEFT;
+            break;
+        case KEY_RIGHT:
+            send_message->direction = RIGHT;
+            break;
+        case 'q':
+        case 'Q':
+            *stop = 1;
+            break;
+        default:
+            continue;
         }
 
         // Send lizard movement message to server
@@ -151,13 +151,13 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message,
 
         // Server replies with lizard score after the movement
         zmq_recv(requester, &server_reply, sizeof(int), 0);
-        if (server_reply != 0)
-        {
-            // End ncurses mode and print error message
-            endwin();
-            printf("Failed to move lizard!\n");
-            return -1;
-        }
+        // if (server_reply != 0)
+        //{
+        //     // End ncurses mode and print error message
+        //     endwin();
+        //     printf("Failed to move lizard!\n");
+        //     return -1;
+        // }
 
         // Move the cursor to the beginning of the line
         move(0, 0);
@@ -172,7 +172,7 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message,
         refresh();
     }
 
-    // End ncurses mode and 
+    // End ncurses mode and
     endwin();
     printf("Lizard movement stopped\n");
 
@@ -195,9 +195,9 @@ int disconnect_lizard(int lizard_id, void *requester, message_to_server *send_me
         printf("Failed to disconnect lizard!\n");
         return -1;
     }
-    
+
     printf("Lizard disconnected\n");
-    
+
     return 0;
 }
 
