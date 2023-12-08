@@ -129,9 +129,13 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 void process_lizard_disconnect(lizard_mover *lizard_payload)
 {
     int id = lizard_payload->recv_message->value;
+    int success = 0;
+
     window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
+
     if (lizard_payload->should_use_responder)
         zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
+
     (*(lizard_payload->num_lizards))--;
     (*(lizard_payload->slot_lizards))++;
 }
