@@ -36,6 +36,8 @@ void process_roach_message(roach_mover *roach_payload)
 
 void process_roach_connect(roach_mover *roach_payload)
 {
+    int failure = -1;
+
     // If there are available slots, add the roach to the array
     if (*(roach_payload->slot_roaches) <= 0)
     {
@@ -80,6 +82,8 @@ void process_roach_inject_connect(roach_mover *roach_payload, roach connected_ro
 
 void process_roach_movement(roach_mover *roach_payload)
 {
+    int success = 0;
+
     // Move the specified roach
     int id = roach_payload->recv_message->value;
     direction_t direction = roach_payload->recv_message->direction;
@@ -121,12 +125,17 @@ void process_roach_movement(roach_mover *roach_payload)
 
 void process_roach_disconnect(roach_mover *roach_payload)
 {
+    int success = 0;
     int id = roach_payload->recv_message->value;
+
     window_erase(roach_payload->game_window, roach_payload->roaches[id].x, roach_payload->roaches[id].y, (roach_payload->roaches[id].ch + 48) | A_BOLD);
+
     zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+
     (*(roach_payload->num_roaches))--;
     (*(roach_payload->slot_roaches))++;
 }
+
 void serialize_roach_mover(roach_mover *roach_payload, char **buffer, size_t *buffer_size)
 {
     // Calculate the size of the buffer

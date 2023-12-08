@@ -4,10 +4,12 @@
 #define SUCCESS 1
 #define FAILURE -1
 #define FIFO_LOCATION "/tmp/requests-fifo"
+#define DEFAULT_SERVER_SOCKET_ADDRESS "ipc:///tmp/server"
 #define DEFAULT_SERVER_ADDRESS "localhost"
 #define DEFAULT_SERVER_PORT "5555"
 #define WINDOW_SIZE 30
 #define ROACH_MOVE_CHANCE 50
+#define ROACH_MOVE_DELAY 1000000
 #define MAX_ROACH_SCORE 5
 #define MAX_ROACHES_GENERATED 10
 #define MAX_ROACHES_ALLOWED (WINDOW_SIZE * WINDOW_SIZE / 3)
