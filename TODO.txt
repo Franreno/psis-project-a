@@ -3,9 +3,3 @@ Mudar o nome de "Display-app" para "display-app" para os nomes dos ficheiros ser
 Mudar o nome de "remote-char.h# para outro nome mais indicativo do que o ".h" serve?
 
 Corrigir o DEFAULT_SERVER_ADDRESS para funcionar sem workaround
-
-Ver se o número de roaches é mesmo suposto ser WINDOW_SIZE*WINDOW_SIZE/3, parece exessivo
-
-Remover "zhelpers.h". Acho que nenhum de nós está a usar funções de lá?
-
-Finalizar makefile. Acho que precisamos de ter um makefile 100% funcional porque é assim que os professores vão compilar o nosso projecto
