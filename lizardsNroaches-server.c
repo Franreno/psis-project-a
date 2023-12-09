@@ -316,7 +316,7 @@ int main()
             wclrtoeol(score_window);
         }
 
-            // Clear the remaining lines
+        // Clear the remaining lines
         for (; j < MAX_LIZARDS_ALLOWED; j++)
         {
             wmove(score_window, j, 0);
