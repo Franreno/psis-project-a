@@ -110,7 +110,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
     int lizard_id = lizard_payload->recv_message->value;
     direction_t direction = lizard_payload->recv_message->direction;
 
-    // Calculate the new position lizard wants to move to
+    // Calculate the new position the lizard wants to move to
     *new_x = lizard_payload->lizards[lizard_id].x;
     *new_y = lizard_payload->lizards[lizard_id].y;
     new_position(new_x, new_y, direction);
@@ -255,7 +255,6 @@ void erase_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t 
 void process_lizard_movement(lizard_mover *lizard_payload)
 {
     int lizard_id = lizard_payload->recv_message->value;
-    int lizard_score = lizard_payload->lizards[lizard_id].score;
     int new_x;
     int new_y;
 
@@ -269,9 +268,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 
     // Reply with the lizard score
     if (lizard_payload->should_use_responder)
-    {
-        zmq_send(lizard_payload->responder, &lizard_score, sizeof(int), 0);
-    }
+        zmq_send(lizard_payload->responder, &lizard_payload->lizards[lizard_id].score, sizeof(int), 0);
 }
 
 void lizard_draw(lizard_mover *lizard_payload, int lizard_id)
