@@ -303,7 +303,17 @@ int main()
 
         // Print the scores in the score window
         for (int i = 0; i < num_lizards; i++)
+        {
+            if (lizards[i].ch == -1)
+            {
+                clrtoeol();
+                continue;
+            }
+
             mvwprintw(score_window, i, 0, "Lizard id %c: Score %d", (char)lizards[i].ch, lizards[i].score);
+            // Clear the rest of the line
+            clrtoeol();
+        }
 
         // Update the score window
         wrefresh(score_window);

@@ -52,8 +52,17 @@ void process_lizard_connect(lizard_mover *lizard_payload)
         }
     }
 
-    // Get the id of the new lizard
-    new_lizard_id = *(lizard_payload->num_lizards);
+    // If there is an empty slot, add the lizard to the array on that slot, if not, add after the last lizard
+    for (int i = 0; i < MAX_LIZARDS_ALLOWED; i++)
+    {
+        if (lizard_payload->lizards[i].ch == -1)
+        {
+            new_lizard_id = i;
+            break;
+        }
+        else
+            new_lizard_id = *(lizard_payload->num_lizards);
+    }
 
     // Increment the number of lizards and decrement the available slots
     (*(lizard_payload->num_lizards))++;
@@ -218,10 +227,17 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 
 void process_lizard_disconnect(lizard_mover *lizard_payload)
 {
-    int id = lizard_payload->recv_message->value;
+    int lizard_id = lizard_payload->recv_message->value;
     int success = 0;
 
-    window_erase(lizard_payload->game_window, lizard_payload->lizards[id].x, lizard_payload->lizards[id].y, (lizard_payload->lizards[id].ch) | A_BOLD);
+    window_erase(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD);
+
+    // Set the lizard character to -1 to indicate it's not in use
+    lizard_payload->lizards[lizard_id].ch = -1;
+    lizard_payload->lizards[lizard_id].x = -1;
+    lizard_payload->lizards[lizard_id].y = -1;
+    lizard_payload->lizards[lizard_id].score = 0;
+    lizard_payload->lizards[lizard_id].is_winner = 0; 
 
     if (lizard_payload->should_use_responder)
         zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
