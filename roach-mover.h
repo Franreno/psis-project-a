@@ -26,6 +26,7 @@ void new_roach_mover(roach_mover **roach_payload, message_to_server *recv_messag
 void process_roach_message(roach_mover *roach_payload);
 void process_roach_connect(roach_mover *roach_payload);
 void process_roach_inject_connect(roach_mover *roach_payload, roach connected_roach, int received_id);
+int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y);
 void process_roach_movement(roach_mover *roach_payload);
 void process_roach_disconnect(roach_mover *roach_payload);
 void serialize_roach_mover(roach_mover *roach_payload, char **buffer, size_t *buffer_size);

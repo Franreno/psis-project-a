@@ -36,6 +36,7 @@ typedef enum client_type
     LIZARD,
     ROACH,
     DISPLAY_APP,
+    LIZARD_BODY,
 } client_type;
 
 typedef struct message_to_server
@@ -53,8 +54,7 @@ typedef struct lizard
     int x;
     int y;
     int score;
-    int prev_x;
-    int prev_y;
+    direction_t previous_direction;
     char is_winner;
 } lizard;
 
