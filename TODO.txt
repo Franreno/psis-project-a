@@ -4,8 +4,6 @@ Mudar o nome de "remote-char.h# para outro nome mais indicativo do que o ".h" se
 
 Corrigir o DEFAULT_SERVER_ADDRESS para funcionar sem workaround
 
-Spawns só devem acontecer em espaços vazios
-
 Server pode apresentar a board usando também a Display-app
 
 The lizardsNroaches-server and Display-app should also display the game status, i.e. the scores of all lizards.
@@ -14,6 +12,9 @@ Não sei se as dimensões do mapa são necessáriamente simétricas!
 
 Para aumentar segurança de comunicação, os clients podem usar hash para comunicar em vez de id dos arrays
 
+Aplicar a correção do bug disconnect seguido de connect no caso das roaches
+
+Spawns devem ser random mas só em lugares vazios
 
 RULES:
 
@@ -25,8 +26,8 @@ RULES:
 
 -> DONE - When ingested, roaches should disapear for 5 seconds, after which, they should reaper in a random spot on the map
 
--> Cockroaches can move to the same place of other cockroaches, can be below or on top the body of lizards, but can not move to the head of the lizards.
+-> DONE - Cockroaches can move to the same place of other cockroaches, can be below or on top the body of lizards, but can not move to the head of the lizards.
 
 -> DONE - The head of the lizards cannot share a position with any other lizard’s head
 
--> When a lizard reaches a score 0f fifty (50) it winsand its body starts to be draw with *
+-> DONE - When a lizard reaches a score 0f fifty (50) it winsand its body starts to be draw with *

@@ -219,6 +219,7 @@ void draw_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t t
     int tail_x = lizard->x;
     int tail_y = lizard->y;
     char overflow = 0;
+
     for (int i = 0; i < 5; i++)
     {
         // Calculate the new position and check if it's valid
@@ -240,6 +241,7 @@ void erase_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t 
     int tail_x = lizard->x;
     int tail_y = lizard->y;
     char overflow = 0;
+
     for (int i = 0; i < 5; i++)
     {
         // Calculate the new position and check if it's valid
