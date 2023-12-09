@@ -302,17 +302,25 @@ int main()
         respawn_eaten_roaches(eaten_roaches, &eaten_roaches_count);
 
         // Print the scores in the score window
-        for (int i = 0; i < num_lizards; i++)
+        int i, j;
+        for (i = 0, j = 0; j < num_lizards; i++)
         {
             if (lizards[i].ch == -1)
-            {
-                clrtoeol();
                 continue;
-            }
 
-            mvwprintw(score_window, i, 0, "Lizard id %c: Score %d", (char)lizards[i].ch, lizards[i].score);
+            // j is the line number and only increments when a lizard is printed
+            mvwprintw(score_window, j, 0, "Lizard id %c: Score %d", (char)lizards[i].ch, lizards[i].score);
+            j++;
+
             // Clear the rest of the line
-            clrtoeol();
+            wclrtoeol(score_window);
+        }
+
+            // Clear the remaining lines
+        for (; j < MAX_LIZARDS_ALLOWED; j++)
+        {
+            wmove(score_window, j, 0);
+            wclrtoeol(score_window);
         }
 
         // Update the score window
