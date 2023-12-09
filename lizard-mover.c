@@ -115,7 +115,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
 
         // If the cell is another lizard, score of both lizards scores should be updated to the sum of the scores devided by 2
         int new_lizard_score = (lizard_payload->lizards[id_1].score + lizard_payload->lizards[id_2].score) / 2;
-        
+
         // Update the lizards scores
         lizard_payload->lizards[id_1].score = new_lizard_score;
         lizard_payload->lizards[id_2].score = new_lizard_score;
@@ -130,12 +130,12 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
 
         return 0;
     }
-    
+
     // Check the top element of the stack to see if it's a roach
     if (cell->stack[cell->top].client_id == ROACH)
     {
-        char *roaches = (char *)malloc(sizeof(char) *cell->capacity);
-        int *roaches_positions = (int *)malloc(sizeof(int) *cell->capacity);
+        char *roaches = (char *)malloc(sizeof(char) * cell->capacity);
+        int *roaches_positions = (int *)malloc(sizeof(int) * cell->capacity);
         int num_roaches = 0;
         int new_lizard_score = 0;
 
@@ -198,15 +198,12 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     // If the lizard movement is calculated as valid, move the lizard
     if (calculate_lizard_movement(lizard_payload, &new_x, &new_y))
     {
-        // Erase the lizard from the screen
-        window_erase(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD);
-
-        // Update the lizard position
-        lizard_payload->lizards[lizard_id].x = new_x;
-        lizard_payload->lizards[lizard_id].y = new_y;
-
-        // Draw the lizard in the new position
-        window_draw(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD, LIZARD, lizard_id);
+        lizard_payload->recv_message->message_accepted = 1;
+        move_lizard_on_screen(lizard_payload, &new_x, &new_y, lizard_id);
+    }
+    else
+    {
+        lizard_payload->recv_message->message_accepted = 0;
     }
 
     // Reply with the lizard score
@@ -214,6 +211,19 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     {
         zmq_send(lizard_payload->responder, &lizard_score, sizeof(int), 0);
     }
+}
+
+void move_lizard_on_screen(lizard_mover *lizard_payload, int *new_x, int *new_y, int lizard_id)
+{
+    // Erase the lizard from the screen
+    window_erase(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD);
+
+    // Update the lizard position
+    lizard_payload->lizards[lizard_id].x = *new_x;
+    lizard_payload->lizards[lizard_id].y = *new_y;
+
+    // Draw the lizard in the new position
+    window_draw(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD, LIZARD, lizard_id);
 }
 
 void process_lizard_disconnect(lizard_mover *lizard_payload)
@@ -234,17 +244,17 @@ void process_lizard_message(lizard_mover *lizard_payload)
 {
     switch (lizard_payload->recv_message->type)
     {
-        case CONNECT:
-            process_lizard_connect(lizard_payload);
-            break;
+    case CONNECT:
+        process_lizard_connect(lizard_payload);
+        break;
 
-        case MOVEMENT:
-            process_lizard_movement(lizard_payload);
-            break;
+    case MOVEMENT:
+        process_lizard_movement(lizard_payload);
+        break;
 
-        case DISCONNECT:
-            process_lizard_disconnect(lizard_payload);
-            break;
+    case DISCONNECT:
+        process_lizard_disconnect(lizard_payload);
+        break;
     }
 }
 

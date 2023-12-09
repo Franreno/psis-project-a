@@ -31,5 +31,6 @@ void process_lizard_movement(lizard_mover *lizard_payload);
 void process_lizard_disconnect(lizard_mover *lizard_payload);
 void serialize_lizard_mover(lizard_mover *lizard_payload, char **buffer, size_t *buffer_size);
 void deserialize_lizard_mover(lizard_mover *lizard_payload, char *buffer);
+void move_lizard_on_screen(lizard_mover *lizard_payload, int *new_x, int *new_y, int lizard_id);
 
 #endif

@@ -184,7 +184,7 @@ int main()
             {
             case LIZARD:
                 log_write("Processing lizard message\n");
-                process_lizard_movement(lizard_payload);
+                move_lizard_on_screen(lizard_payload, &field_update_message->new_x, &field_update_message->new_y, recv_message.value);
                 break;
             case ROACH:
                 log_write("Processing roach message\n");

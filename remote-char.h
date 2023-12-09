@@ -44,6 +44,7 @@ typedef struct message_to_server
     int type;              // 1 = connect, 2 = movement
     int value;             // usage depends on client_id and type
     direction_t direction; // direction to move the roach
+    char message_accepted; // 1 = message accepted, 0 = message rejected
 } message_to_server;
 
 typedef struct lizard
@@ -54,7 +55,7 @@ typedef struct lizard
     int score;
     int prev_x;
     int prev_y;
-    char is_winner; 
+    char is_winner;
 } lizard;
 
 typedef struct roach
@@ -71,6 +72,11 @@ typedef struct field_update_movement
     int num_roaches;
     int num_lizards;
     message_to_server message;
+    int new_x;
+    int new_y;
+    int amount_eaten_roaches;
+    long int *buffer;
+    size_t buffer_size;
 } field_update_movement;
 
 typedef struct field_update_connect

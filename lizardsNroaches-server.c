@@ -150,11 +150,46 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
     free(serialized_lizard_mover);
 }
 
-void publish_movement(void *publisher, message_to_server recv_message)
+void publish_movement(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
     // Create field update message
     field_update_movement field_update_message;
     field_update_message.message = recv_message;
+    switch (recv_message.client_id)
+    {
+    case LIZARD:
+        field_update_message.new_x = lizard_payload->lizards[recv_message.value].x;
+        field_update_message.new_y = lizard_payload->lizards[recv_message.value].y;
+        break;
+    case ROACH:
+        field_update_message.new_x = roach_payload->roaches[recv_message.value].x;
+        field_update_message.new_y = roach_payload->roaches[recv_message.value].y;
+        break;
+    }
+
+    // Also send data about the eaten roaches!
+    // Check if there are any eaten roaches
+    if (*(roach_payload->amount_eaten_roaches) > 0)
+    {
+        // Create a buffer to store the eaten roaches
+        char *eaten_roaches_ids_buffer = malloc(sizeof(int) * *(roach_payload->amount_eaten_roaches));
+
+        // Iterate over the eaten roaches and copy their ids to the buffer
+        for (int i = 0; i < *(roach_payload->amount_eaten_roaches); i++)
+        {
+            // Get eaten roach address
+            roach *eaten_roach_ptr = roach_payload->eaten_roaches[i];
+
+            // Find the index of the eaten roach in the roaches array by the address of the eaten roach
+            long int eaten_roach_index = eaten_roach_ptr - roach_payload->roaches;
+
+            // Copy the index to the buffer
+            memcpy(eaten_roaches_ids_buffer + i * sizeof(int), &eaten_roach_index, sizeof(int));
+        }
+
+        // Free the buffer
+    }
+
     field_update_message.num_roaches = 10;
     field_update_message.num_lizards = 10;
 
@@ -287,6 +322,7 @@ int main()
     // Create pointer to eaten roaches
     roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
     int eaten_roaches_count = 0;
+    int last_cycle_eaten_roaches_count = 0;
 
     roach_payload->eaten_roaches = eaten_roaches;
     roach_payload->amount_eaten_roaches = &eaten_roaches_count;
@@ -308,44 +344,51 @@ int main()
         // Update the score window
         wrefresh(score_window);
 
+        recv_message.message_accepted == 1;
+
         switch (recv_message.client_id)
         {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_message(lizard_payload);
-                log_write("Processed lizard message\n");
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                process_roach_message(roach_payload);
-                break;
-            case DISPLAY_APP:
-                log_write("Processing display app message\n");
-                process_display_app_message(responder, game_window, roach_payload, lizard_payload);
-                log_write("Processed display app message\n");
-                break;
-            default:
-                break;
+        case LIZARD:
+            log_write("Processing lizard message\n");
+            process_lizard_message(lizard_payload);
+            log_write("Processed lizard message\n");
+            break;
+        case ROACH:
+            log_write("Processing roach message\n");
+            process_roach_message(roach_payload);
+            break;
+        case DISPLAY_APP:
+            log_write("Processing display app message\n");
+            process_display_app_message(responder, game_window, roach_payload, lizard_payload);
+            log_write("Processed display app message\n");
+            break;
+        default:
+            break;
         }
 
-        if (recv_message.client_id == DISPLAY_APP)
+        if (recv_message.client_id == DISPLAY_APP || recv_message.message_accepted == 0)
             continue;
+
+        // Check if there were any eaten roaches
+        if (last_cycle_eaten_roaches_count != eaten_roaches_count)
+        {
+        }
 
         // Publish the message to the display app
         switch (recv_message.type)
         {
-            case CONNECT:
-                log_write("Publishing connect\n");
-                publish_connect(publisher, recv_message, roach_payload, lizard_payload);
-                break;
-            case MOVEMENT:
-                log_write("Publishing movement\n");
-                publish_movement(publisher, recv_message);
-                break;
-            case DISCONNECT:
-                log_write("Publishing disconnect\n");
-                publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
-                break;
+        case CONNECT:
+            log_write("Publishing connect\n");
+            publish_connect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        case MOVEMENT:
+            log_write("Publishing movement\n");
+            publish_movement(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        case DISCONNECT:
+            log_write("Publishing disconnect\n");
+            publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
         }
     }
 

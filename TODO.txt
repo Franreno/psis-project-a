@@ -30,3 +30,11 @@ RULES:
 -> The head of the lizards cannot share a position with any other lizard’s head
 
 -> When a lizard reaches a score 0f fifty (50) it winsand its body starts to be draw with *
+
+At every movement, we need to send the movement that happened
+also send the updated score,
+and also send the eaten roaches state. 
+
+
+// For the roaches, we could send that there was a movement of the roach to out of the screen. But we also need to remove it from the stack...
+// Publish two movements? In a way, the roach was moved out of the board, therefore we could warn the displays about this
