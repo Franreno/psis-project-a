@@ -139,6 +139,8 @@ int main()
     size_t lizard_mover_buffer_size;
     zmq_recv(requester, &lizard_mover_buffer_size, sizeof(lizard_mover_buffer_size), 0);
 
+    log_write("Received lizard mover buffer size: %d\n", lizard_mover_buffer_size);
+
     // Allocate the buffer based on the received size
     char *lizard_mover_buffer = malloc(lizard_mover_buffer_size);
     if (!lizard_mover_buffer)
@@ -179,16 +181,21 @@ int main()
             // Point movers to the message received
             roach_payload->recv_message = &recv_message;
             lizard_payload->recv_message = &recv_message;
+            log_write("Received message from client %d\n", recv_message.client_id);
+            log_write("Received message type %d\n", recv_message.type);
+            log_write("Received message value %d\n", recv_message.value);
+            log_write("Received message direction %d\n", recv_message.direction);
 
             switch (recv_message.client_id)
             {
             case LIZARD:
                 log_write("Processing lizard message\n");
-                move_lizard_on_screen(lizard_payload, &field_update_message->new_x, &field_update_message->new_y, recv_message.value);
+                // Update the lizard payload with the new direction
+                lizard_move(lizard_payload, recv_message.value, field_update_message->new_x, field_update_message->new_y);
                 break;
             case ROACH:
                 log_write("Processing roach message\n");
-                process_roach_movement(roach_payload);
+                roach_move(roach_payload, field_update_message->new_x, field_update_message->new_y, recv_message.value);
                 break;
             }
 
@@ -199,14 +206,17 @@ int main()
             log_write("Received field update connect\n");
             field_update_connect *field_update_message = malloc(sizeof(field_update_connect));
             zmq_recv(subscriber, field_update_message, sizeof(field_update_connect), 0);
+            message_to_server recv_message = field_update_message->message;
+            roach_payload->recv_message = &recv_message;
+            lizard_payload->recv_message = &recv_message;
             switch (field_update_message->message.client_id)
             {
             case LIZARD:
-                log_write("Processing lizard message\n");
+                log_write("Processing lizard connect message\n");
                 process_lizard_inject_connect(lizard_payload, field_update_message->connected_lizard, field_update_message->position_in_array);
                 break;
             case ROACH:
-                log_write("Processing roach message\n");
+                log_write("Processing roach connect message\n");
                 process_roach_inject_connect(roach_payload, field_update_message->connected_roach, field_update_message->position_in_array);
                 break;
             }

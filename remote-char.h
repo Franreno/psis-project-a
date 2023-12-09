@@ -74,9 +74,7 @@ typedef struct field_update_movement
     message_to_server message;
     int new_x;
     int new_y;
-    int amount_eaten_roaches;
-    long int *buffer;
-    size_t buffer_size;
+    direction_t prev_direction;
 } field_update_movement;
 
 typedef struct field_update_connect

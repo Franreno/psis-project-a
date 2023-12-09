@@ -160,34 +160,12 @@ void publish_movement(void *publisher, message_to_server recv_message, roach_mov
     case LIZARD:
         field_update_message.new_x = lizard_payload->lizards[recv_message.value].x;
         field_update_message.new_y = lizard_payload->lizards[recv_message.value].y;
+        field_update_message.prev_direction = lizard_payload->lizards[recv_message.value].previous_direction;
         break;
     case ROACH:
         field_update_message.new_x = roach_payload->roaches[recv_message.value].x;
         field_update_message.new_y = roach_payload->roaches[recv_message.value].y;
         break;
-    }
-
-    // Also send data about the eaten roaches!
-    // Check if there are any eaten roaches
-    if (*(roach_payload->amount_eaten_roaches) > 0)
-    {
-        // Create a buffer to store the eaten roaches
-        char *eaten_roaches_ids_buffer = malloc(sizeof(int) * *(roach_payload->amount_eaten_roaches));
-
-        // Iterate over the eaten roaches and copy their ids to the buffer
-        for (int i = 0; i < *(roach_payload->amount_eaten_roaches); i++)
-        {
-            // Get eaten roach address
-            roach *eaten_roach_ptr = roach_payload->eaten_roaches[i];
-
-            // Find the index of the eaten roach in the roaches array by the address of the eaten roach
-            long int eaten_roach_index = eaten_roach_ptr - roach_payload->roaches;
-
-            // Copy the index to the buffer
-            memcpy(eaten_roaches_ids_buffer + i * sizeof(int), &eaten_roach_index, sizeof(int));
-        }
-
-        // Free the buffer
     }
 
     field_update_message.num_roaches = 10;
@@ -391,6 +369,13 @@ int main()
         if (last_cycle_eaten_roaches_count != eaten_roaches_count)
         {
         }
+
+        // Need to publish
+        // Updates of movement
+        // Updates of connect
+        // Updates of disconnect
+        // Updates on roach eaten / respawned
+        // Update of lizard score
 
         // Publish the message to the display app
         switch (recv_message.type)

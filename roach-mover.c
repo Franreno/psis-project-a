@@ -20,17 +20,17 @@ void process_roach_message(roach_mover *roach_payload)
 {
     switch (roach_payload->recv_message->type)
     {
-        case CONNECT:
-            process_roach_connect(roach_payload);
-            break;
+    case CONNECT:
+        process_roach_connect(roach_payload);
+        break;
 
-        case MOVEMENT:
-            process_roach_movement(roach_payload);
-            break;
+    case MOVEMENT:
+        process_roach_movement(roach_payload);
+        break;
 
-        case DISCONNECT:
-            process_roach_disconnect(roach_payload);
-            break;
+    case DISCONNECT:
+        process_roach_disconnect(roach_payload);
+        break;
     }
 }
 
@@ -127,20 +127,25 @@ void process_roach_movement(roach_mover *roach_payload)
 
     if (calculate_roach_movement(roach_payload, &new_x, &new_y))
     {
-        // Erase the roach from the screen
-        window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
-
-        // Update the roach position
-        roach_payload->roaches[roach_id].x = new_x;
-        roach_payload->roaches[roach_id].y = new_y;
-
-        // Draw the roach in the new position
-        window_draw(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD, ROACH, roach_id);
+        roach_move(roach_payload, new_x, new_y, roach_id);
     }
 
     // Reply indicating success moving the roach
     if (roach_payload->should_use_responder)
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+}
+
+void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id)
+{
+    // Erase the roach from the screen
+    window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
+
+    // Update the roach position
+    roach_payload->roaches[roach_id].x = new_x;
+    roach_payload->roaches[roach_id].y = new_y;
+
+    // Draw the roach in the new position
+    window_draw(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD, ROACH, roach_id);
 }
 
 void process_roach_disconnect(roach_mover *roach_payload)
