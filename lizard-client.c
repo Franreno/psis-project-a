@@ -71,6 +71,7 @@ int connect_lizard(void *requester, message_to_server *send_message)
 {
     char lizard_char;
     int server_reply;
+    int lizard_id;
 
     send_message->client_id = LIZARD;
     send_message->type = CONNECT;
@@ -96,17 +97,19 @@ int connect_lizard(void *requester, message_to_server *send_message)
         printf("Failed to connect lizard! There's already a lizard with that character\n");
         return -1;
     }
+    
+    // If the server replies with the lizard's id
+    lizard_id = server_reply;
+    printf("Lizard connected with id: %d\n", lizard_id);
 
-    // If the server replies with a lizard id, the lizard was successfully connected
-    printf("Lizard connected with id: %d\n", server_reply);
-
-    return server_reply;
+    return lizard_id;
 }
 
 int move_lizard(int lizard_id, void *requester, message_to_server *send_message, volatile sig_atomic_t *stop)
 {
-    int ch;
+    int keypress;
     int server_reply;
+    int lizard_score;
 
     // Initialize ncurses mode
     initscr();
@@ -121,49 +124,51 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message,
     while (!*stop)
     {
         // Read a character from the keyboard
-        ch = getch();
+        keypress = getch();
 
         // Check if the character is an arrow key, 'q' or 'Q'
-        switch (ch)
+        switch (keypress)
         {
-        case KEY_UP:
-            send_message->direction = UP;
-            break;
-        case KEY_DOWN:
-            send_message->direction = DOWN;
-            break;
-        case KEY_LEFT:
-            send_message->direction = LEFT;
-            break;
-        case KEY_RIGHT:
-            send_message->direction = RIGHT;
-            break;
-        case 'q':
-        case 'Q':
-            *stop = 1;
-            break;
-        default:
-            continue;
+            case KEY_UP:
+                send_message->direction = UP;
+                break;
+            case KEY_DOWN:
+                send_message->direction = DOWN;
+                break;
+            case KEY_LEFT:
+                send_message->direction = LEFT;
+                break;
+            case KEY_RIGHT:
+                send_message->direction = RIGHT;
+                break;
+            case 'q':
+            case 'Q':
+                *stop = 1;
+                break;
+            default:
+                continue;
         }
 
         // Send lizard movement message to server
         zmq_send(requester, send_message, sizeof(message_to_server), 0);
 
-        // Server replies with lizard score after the movement
+        // Server replies with failure if Lizard should disconnect
         zmq_recv(requester, &server_reply, sizeof(int), 0);
-        // if (server_reply != 0)
-        //{
-        //     // End ncurses mode and print error message
-        //     endwin();
-        //     printf("Failed to move lizard!\n");
-        //     return -1;
-        // }
+        if (server_reply < 0)
+        {
+            // End ncurses mode and print error message
+            endwin();
+            printf("Server ordered lizard should stop and disconnect!\n");
+            return -1;
+        }
+
+        // If not, the server replies with the lizard's score
+        lizard_score = server_reply;
 
         // Move the cursor to the beginning of the line
         move(0, 0);
 
-        // Print the lizards score
-        printw("Your Lizard's score is %d", server_reply);
+        printw("Your lizard's score is %d", lizard_score);
 
         // Clear the rest of the line
         clrtoeol();
@@ -172,9 +177,11 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message,
         refresh();
     }
 
-    // End ncurses mode and
+    // End ncurses mode and 
     endwin();
+    
     printf("Lizard movement stopped\n");
+    printf("Your lizard's final score was %d\n", lizard_score);
 
     return 0;
 }
@@ -210,7 +217,9 @@ int main(int argc, char *argv[])
     void *requester;
 
     if (create_and_connect_socket(argc, argv, &server_socket_address, &context, &requester) != 0)
+    {
         return -1;
+    }
 
     message_to_server send_message;
 

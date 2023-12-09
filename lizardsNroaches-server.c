@@ -6,16 +6,13 @@
 #include <time.h>
 #include <string.h>
 #include <stdio.h>
-
 #include <zmq.h>
-
 #include <ncurses.h>
-
 #include "remote-char.h"
-#include "logger.h"
-#include "window.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
+#include "logger.h"
+#include "window.h"
 #include "util.h"
 
 void print_constants()
@@ -23,10 +20,72 @@ void print_constants()
     printf("The server is running with the following parameters:\n");
     printf("WINDOW_SIZE: %d\n", WINDOW_SIZE);
     printf("ROACH_MOVE_CHANCE: %d\n", ROACH_MOVE_CHANCE);
+    printf("ROACH_MOVE_DELAY: %d\n", ROACH_MOVE_DELAY);
     printf("MAX_ROACH_SCORE: %d\n", MAX_ROACH_SCORE);
     printf("MAX_ROACHES_GENERATED: %d\n", MAX_ROACHES_GENERATED);
     printf("MAX_ROACHES_ALLOWED: %d\n", MAX_ROACHES_ALLOWED);
     printf("MAX_LIZARDS_ALLOWED: %d\n", MAX_LIZARDS_ALLOWED);
+    printf("MAX_LIZARD_SCORE: %d\n", MAX_LIZARD_SCORE);
+}
+
+int create_and_connect_sockets(char **rep_server_socket_address, char **pub_server_socket_address, void **context, void **responder, void **publisher)
+{
+    printf("Using default REP server socket address: %s\n", DEFAULT_SERVER_SOCKET_ADDRESS);
+    *rep_server_socket_address = malloc(strlen(DEFAULT_SERVER_SOCKET_ADDRESS) + 1);
+    *rep_server_socket_address = DEFAULT_SERVER_SOCKET_ADDRESS;
+
+    printf("Using default PUB server socket address: %s\n", DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS);
+    *pub_server_socket_address = malloc(strlen(DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS) + 1);
+    *pub_server_socket_address = DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS;
+
+    // Create context
+    *context = zmq_ctx_new();
+    if (*context == NULL)
+    {
+        printf("Failed to create context: %s\n", zmq_strerror(errno));
+        return -1;
+    }
+
+    // Create REQ socket to receive messages from clients
+    *responder = zmq_socket(*context, ZMQ_REP);
+    if (*responder == NULL)
+    {
+        printf("Failed to create REP socket: %s\n", zmq_strerror(errno));
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    // Create PUB socket to send messages to the display app
+    *publisher = zmq_socket(*context, ZMQ_PUB);
+    if (*publisher == NULL)
+    {
+        printf("Failed to create PUB socket: %s\n", zmq_strerror(errno));
+        zmq_close(*responder);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    // Bind to the REP socket
+    if (zmq_bind(*responder, *rep_server_socket_address) != 0)
+    {
+        printf("Failed to bind REP socket: %s\n", zmq_strerror(errno));
+        zmq_close(*responder);
+        zmq_close(*publisher);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    // Bind to the PUB socket
+    if (zmq_bind(*publisher, *pub_server_socket_address) != 0)
+    {
+        printf("Failed to bind PUB socket: %s\n", zmq_strerror(errno));
+        zmq_close(*responder);
+        zmq_close(*publisher);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    return 0;
 }
 
 void process_display_app_message(void *responder, window_data *data, roach_mover *roach_mover, lizard_mover *lizard_mover)
@@ -167,67 +226,25 @@ void respawn_eaten_roaches(roach **eaten_roaches, int *amount_eaten_roaches)
 int main()
 {
     // Print the parameters the server is running with
-    print_constants(); // NOT PRINTING ??
+    print_constants();
 
     // Initialize logger
     log_init("server.log");
 
-    // Create socket address
-    char *address = DEFAULT_SERVER_ADDRESS;
-    char *port = DEFAULT_SERVER_PORT;
-    char *server_socket_address = malloc(sizeof(char) * (strlen("tcp://") + strlen(address) + strlen(":") + strlen(port) + 1));
-    strcpy(server_socket_address, "tcp://");
-    strcat(server_socket_address, address);
-    strcat(server_socket_address, ":");
-    strcat(server_socket_address, port);
-    server_socket_address = "ipc:///tmp/server"; // WORKAROUND
-    printf("Connecting to server at %s\n", server_socket_address);
+    char *rep_server_socket_address;
+    char *pub_server_socket_address;
+    void *context;
+    void *responder;
+    void *publisher;
 
-    // Create context
-    void *context = zmq_ctx_new();
-    if (context == NULL)
+    // Create and connect sockets for clients to connect to
+    if (create_and_connect_sockets(&rep_server_socket_address, &pub_server_socket_address, &context, &responder, &publisher) != 0)
     {
-        printf("Failed to create context: %s\n", zmq_strerror(errno));
-        return 1;
+        return -1;
     }
 
-    // Create REP socket to receive messages from clients
-    void *responder = zmq_socket(context, ZMQ_REP);
-    if (responder == NULL)
-    {
-        printf("Failed to create REP socket: %s\n", zmq_strerror(errno));
-        zmq_ctx_destroy(context);
-        return 1;
-    }
-    // Create a publisher socket to send messages to the display app
-    void *publisher = zmq_socket(context, ZMQ_PUB);
-    if (publisher == NULL)
-    {
-        printf("Failed to create PUB socket: %s\n", zmq_strerror(errno));
-        zmq_close(responder);
-        zmq_ctx_destroy(context);
-        return 1;
-    }
-
-    // Bind to the REP socket
-    if (zmq_bind(responder, server_socket_address) != 0)
-    {
-        printf("Failed to bind REP socket: %s\n", zmq_strerror(errno));
-        zmq_close(responder);
-        zmq_close(publisher);
-        zmq_ctx_destroy(context);
-        return 1;
-    }
-
-    // Bind to the PUB socket
-    if (zmq_bind(publisher, "tcp://*:5556") != 0)
-    {
-        printf("Failed to bind PUB socket: %s\n", zmq_strerror(errno));
-        zmq_close(responder);
-        zmq_close(publisher);
-        zmq_ctx_destroy(context);
-        return 1;
-    }
+    // Seed random number generator
+    srand(time(NULL));
 
     // Initialize ncurses
     initscr();
@@ -251,9 +268,6 @@ int main()
 
     message_to_server recv_message;
 
-    // Seed random number generator
-    srand(time(NULL));
-
     roach_mover *roach_payload = malloc(sizeof(roach_mover));
     log_write("Creating roach mover\n");
     new_roach_mover(&roach_payload, &recv_message, roaches, responder, &num_roaches, &slot_roaches, game_window);
@@ -267,7 +281,7 @@ int main()
     roach_payload->lizards = lizards;
     lizard_payload->roaches = roaches;
 
-    // Create eaten roaches pointer
+    // Create pointer to eaten roaches
     roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
     int eaten_roaches_count = 0;
 
@@ -286,22 +300,22 @@ int main()
 
         switch (recv_message.client_id)
         {
-        case LIZARD:
-            log_write("Processing lizard message\n");
-            process_lizard_message(lizard_payload);
-            log_write("Processed lizard message\n");
-            break;
-        case ROACH:
-            log_write("Processing roach message\n");
-            process_roach_message(roach_payload);
-            break;
-        case DISPLAY_APP:
-            log_write("Processing display app message\n");
-            process_display_app_message(responder, game_window, roach_payload, lizard_payload);
-            log_write("Processed display app message\n");
-            break;
-        default:
-            break;
+            case LIZARD:
+                log_write("Processing lizard message\n");
+                process_lizard_message(lizard_payload);
+                log_write("Processed lizard message\n");
+                break;
+            case ROACH:
+                log_write("Processing roach message\n");
+                process_roach_message(roach_payload);
+                break;
+            case DISPLAY_APP:
+                log_write("Processing display app message\n");
+                process_display_app_message(responder, game_window, roach_payload, lizard_payload);
+                log_write("Processed display app message\n");
+                break;
+            default:
+                break;
         }
 
         if (recv_message.client_id == DISPLAY_APP)
@@ -310,18 +324,18 @@ int main()
         // Publish the message to the display app
         switch (recv_message.type)
         {
-        case CONNECT:
-            log_write("Publishing connect\n");
-            publish_connect(publisher, recv_message, roach_payload, lizard_payload);
-            break;
-        case MOVEMENT:
-            log_write("Publishing movement\n");
-            publish_movement(publisher, recv_message);
-            break;
-        case DISCONNECT:
-            log_write("Publishing disconnect\n");
-            publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
-            break;
+            case CONNECT:
+                log_write("Publishing connect\n");
+                publish_connect(publisher, recv_message, roach_payload, lizard_payload);
+                break;
+            case MOVEMENT:
+                log_write("Publishing movement\n");
+                publish_movement(publisher, recv_message);
+                break;
+            case DISCONNECT:
+                log_write("Publishing disconnect\n");
+                publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
+                break;
         }
     }
 

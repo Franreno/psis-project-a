@@ -70,25 +70,23 @@ int create_and_connect_socket(int argc, char *argv[], char **server_socket_addre
 int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester, message_to_server *send_message)
 {
     int server_reply;
+    int roach_id;
 
     send_message->client_id = ROACH;
     send_message->type = CONNECT;
 
-    // For each roach, randomly generate a value for its score
-    for (int i = 0; i < num_roaches; i++)
-    {
-        roaches[i] = rand() % MAX_ROACH_SCORE + 1;
-    }
-
     // For each roach, send a connect message to the server and wait for a response
     for (int i = 0; i < num_roaches; i++)
     {
+        // Generate a random score for the roach
+        roaches[i] = rand() % MAX_ROACH_SCORE + 1;
         send_message->value = roaches[i];
+        
         // Send message to server connecting a roach
         zmq_send(requester, send_message, sizeof(message_to_server), 0);
         printf("Attempting to connect roach with score: %d\n", roaches[i]);
 
-        // Server replies with either failure or the roach id that was assigned to the roach
+        // Server replies with either failure or the assigned roach id
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply == -1)
         {
@@ -96,13 +94,13 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
             num_roaches = i;
             return -1;
         }
+
         // If the server replies with a roach id, store the id in the roaches array, replacing it's score
-        else
-        {
-            printf("Roach connected with id: %d\n", server_reply);
-            roaches[i] = server_reply;
-        }
+        roach_id = server_reply;
+        roaches[i] = roach_id;
+        printf("Roach connected with id: %d\n", roach_id);
     }
+
     return 0;
 }
 
@@ -169,6 +167,8 @@ int disconnect_roaches(int num_roaches, int *roaches, void *requester, message_t
         }
     }
 
+    num_roaches = 0;
+
     printf("Roaches disconnected\n");
 
     return success;
@@ -183,7 +183,9 @@ int main(int argc, char *argv[])
     void *requester;
 
     if (create_and_connect_socket(argc, argv, &server_socket_address, &context, &requester) != 0)
+    {
         return -1;
+    }
 
     message_to_server send_message;
 
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
 
     // Randomly select the number of roaches to attempt to generate
     int num_roaches = rand() % MAX_ROACHES_GENERATED + 1;
-    printf("Number of cockroaches to attempt to generate: %d\n", num_roaches);
+    printf("Number of roaches to attempt to generate: %d\n", num_roaches);
 
     // Create an array of roaches and connect them to the server
     int *roaches = malloc(sizeof(int) * num_roaches);
