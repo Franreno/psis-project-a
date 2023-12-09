@@ -128,7 +128,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
             lizard_payload->lizards[id_2].is_winner = 0;
         }
 
-        return 1;
+        return 0;
     }
     
     // Check the top element of the stack to see if it's a roach
@@ -185,7 +185,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         free(roaches_positions);
     }
 
-    return 0;
+    return 1;
 }
 
 void process_lizard_movement(lizard_mover *lizard_payload)
@@ -196,7 +196,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     int new_y;
 
     // If the lizard movement is calculated as valid, move the lizard
-    if (!calculate_lizard_movement(lizard_payload, &new_x, &new_y))
+    if (calculate_lizard_movement(lizard_payload, &new_x, &new_y))
     {
         // Erase the lizard from the screen
         window_erase(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD);

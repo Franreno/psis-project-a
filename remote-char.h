@@ -1,8 +1,6 @@
 #ifndef REMOTE_CHAR_H
 #define REMOTE_CHAR_H
 
-#define SUCCESS 1
-#define FAILURE -1
 #define DEFAULT_SERVER_SOCKET_ADDRESS "ipc:///tmp/server"
 #define DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS "tcp://*:5556"
 #define DEFAULT_SERVER_ADDRESS "localhost"
@@ -40,7 +38,6 @@ typedef enum client_type
     DISPLAY_APP,
 } client_type;
 
-// Message type clients use to communicate with the server
 typedef struct message_to_server
 {
     int client_id;         // 1 = lizard, 2 = roach, 3 = display-app
@@ -57,7 +54,7 @@ typedef struct lizard
     int score;
     int prev_x;
     int prev_y;
-    char is_winner;
+    char is_winner; 
 } lizard;
 
 typedef struct roach
@@ -65,9 +62,7 @@ typedef struct roach
     char ch;
     int x;
     int y;
-    // If roach was eaten
     char is_eaten;
-    // Timestamp of when the roach was eaten
     time_t timestamp;
 } roach;
 

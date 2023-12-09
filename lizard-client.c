@@ -165,15 +165,13 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message,
         // If not, the server replies with the lizard's score
         lizard_score = server_reply;
 
-        // Move the cursor to the beginning of the line
-        move(0, 0);
-
-        printw("Your lizard's score is %d", lizard_score);
+        // Print the lizard's score
+        mvprintw(0, 0, "Your lizard's score is %d", lizard_score);
 
         // Clear the rest of the line
         clrtoeol();
 
-        // Refresh the screen to show the new content
+        // Refresh the screen
         refresh();
     }
 

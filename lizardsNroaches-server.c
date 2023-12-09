@@ -256,6 +256,9 @@ int main()
     window_data *game_window;
     window_init(&game_window, WINDOW_SIZE, WINDOW_SIZE);
 
+    // Create a new window for the scores
+    WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
+
     // Initialize variables used for roach tracking
     int num_roaches = 0;
     int slot_roaches = MAX_ROACHES_ALLOWED;
@@ -297,6 +300,13 @@ int main()
         log_write("Received message from client %d\n", recv_message.client_id);
 
         respawn_eaten_roaches(eaten_roaches, &eaten_roaches_count);
+
+        // Print the scores in the score window
+        for (int i = 0; i < num_lizards; i++)
+            mvwprintw(score_window, i, 0, "Lizard id %c: Score %d", (char)lizards[i].ch, lizards[i].score);
+
+        // Update the score window
+        wrefresh(score_window);
 
         switch (recv_message.client_id)
         {

@@ -1,8 +1,5 @@
 #include "util.h"
 
-int success = SUCCESS;
-int failure = FAILURE;
-
 void new_position(int *x, int *y, direction_t direction)
 {
     switch (direction)

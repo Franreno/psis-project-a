@@ -200,6 +200,7 @@ void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, c
         cell->top--;
     }
 }
+
 void window_erase(window_data *data, int x, int y, char ch)
 {
     // Remove the specified character from the stack
