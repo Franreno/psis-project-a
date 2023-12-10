@@ -2,7 +2,7 @@
 #define ROACH_MOVER_H
 
 #include "util.h"
-#include "remote-char.h"
+#include "default_consts.h"
 #include "window.h"
 
 typedef struct roach_mover

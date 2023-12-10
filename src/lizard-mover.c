@@ -1,7 +1,16 @@
-#include <zmq.h>
-#include "window.h"
 #include "lizard-mover.h"
 
+/**
+ * @brief - Create a lizard mover object
+ *
+ * @param lizard_payload - Lizard mover object
+ * @param recv_message - Message received from the server
+ * @param lizards - Array of lizards
+ * @param responder - ZMQ socket
+ * @param num_lizards - Number of lizards
+ * @param slot_lizards - Number of available slots
+ * @param game_window - Game window
+ */
 void new_lizard_mover(lizard_mover **lizard_payload,
                       message_to_server *recv_message,
                       lizard *lizards,
@@ -18,6 +27,11 @@ void new_lizard_mover(lizard_mover **lizard_payload,
     (*lizard_payload)->recv_message = recv_message;
 }
 
+/**
+ * @brief - Connect a lizard to the server
+ *
+ * @param lizard_payload  - Lizard mover object
+ */
 void process_lizard_connect(lizard_mover *lizard_payload)
 {
     int new_lizard_id;
@@ -70,7 +84,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
         // Get the stack info of the new position
         cell = get_cell(lizard_payload->game_window->matrix, new_x, new_y);
     } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH);
-    
+
     // Once the position is valid, initialize the lizard in the position
     lizard_payload->lizards[new_lizard_id].x = new_x;
     lizard_payload->lizards[new_lizard_id].y = new_y;
@@ -88,29 +102,38 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     }
 }
 
+/**
+ * @brief - Connect a lizard to the server
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param connected_lizard - Lizard to connect
+ * @param received_id - Id of the lizard received from the server
+ */
 void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connected_lizard, int received_id)
 {
-    // printf("Received lizard with id %d\n", received_id);
+
     //  Inject means it was received from the server, if received
     //  from the server, we don't need to reply, and don't need to check for slots
 
     // Increment the number of lizards and decrement the available slots
     (*(lizard_payload->num_lizards))++;
     (*(lizard_payload->slot_lizards))--;
-    // printf("Num lizards: %d\n", *(lizard_payload->num_lizards));
-    // printf("Slot lizards: %d\n", *(lizard_payload->slot_lizards));
 
     // Initialize the lizard in a received position
     lizard_payload->lizards[received_id] = connected_lizard;
-    // printf("Lizard char: %c\n", lizard_payload->lizards[received_id].ch);
-    // printf("Lizard previous direction: %d\n", lizard_payload->lizards[received_id].previous_direction);
 
     // Draw the lizard in the received position
-    // printf("Drawing lizard\n");
     lizard_draw(lizard_payload, received_id);
-    // printf("Lizard drawn\n");
 }
 
+/**
+ * @brief - Calculate the lizard movement
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param new_x - New x position
+ * @param new_y - New y position
+ * @return int - 1 if the lizard can move, 0 otherwise
+ */
 int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new_y)
 {
 
@@ -228,6 +251,13 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
     return 1;
 }
 
+/**
+ * @brief - Draw the lizard tail
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param lizard_id - Lizard id
+ * @param tail_direction - Tail direction
+ */
 void draw_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t tail_direction)
 {
     // printf("Drawing lizard tail\n");
@@ -261,6 +291,13 @@ void draw_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t t
     }
 }
 
+/**
+ * @brief - Erase the lizard tail
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param lizard_id - Lizard id
+ * @param tail_direction - Tail direction
+ */
 void erase_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t tail_direction)
 {
     lizard *lizard = &lizard_payload->lizards[lizard_id];
@@ -283,6 +320,11 @@ void erase_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t 
     }
 }
 
+/**
+ * @brief - Calculate the lizard movement
+ *
+ * @param lizard_payload  - Lizard mover object
+ */
 void process_lizard_movement(lizard_mover *lizard_payload)
 {
     int lizard_id = lizard_payload->recv_message->value;
@@ -305,6 +347,12 @@ void process_lizard_movement(lizard_mover *lizard_payload)
         zmq_send(lizard_payload->responder, &lizard_payload->lizards[lizard_id].score, sizeof(int), 0);
 }
 
+/**
+ * @brief - Draw the lizard on the screen
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param lizard_id - Lizard id
+ */
 void lizard_draw(lizard_mover *lizard_payload, int lizard_id)
 {
     // Draw the lizard in the new position
@@ -312,6 +360,12 @@ void lizard_draw(lizard_mover *lizard_payload, int lizard_id)
     draw_lizard_tail(lizard_payload, lizard_id, lizard_payload->recv_message->direction);
 }
 
+/**
+ * @brief - Erase the lizard from the screen
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param lizard_id - Lizard id
+ */
 void lizard_erase(lizard_mover *lizard_payload, int lizard_id)
 {
     // Erase the lizard from the screen
@@ -319,6 +373,14 @@ void lizard_erase(lizard_mover *lizard_payload, int lizard_id)
     erase_lizard_tail(lizard_payload, lizard_id, lizard_payload->lizards[lizard_id].previous_direction);
 }
 
+/**
+ * @brief - Move the lizard on the screen
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param lizard_id - Lizard id
+ * @param new_x - New x position
+ * @param new_y - New y position
+ */
 void lizard_move(lizard_mover *lizard_payload, int lizard_id, int new_x, int new_y)
 {
     lizard_erase(lizard_payload, lizard_id);
@@ -331,6 +393,11 @@ void lizard_move(lizard_mover *lizard_payload, int lizard_id, int new_x, int new
     lizard_draw(lizard_payload, lizard_id);
 }
 
+/**
+ * @brief - Disconnect a lizard from the server
+ *
+ * @param lizard_payload  - Lizard mover object
+ */
 void process_lizard_disconnect(lizard_mover *lizard_payload)
 {
     int lizard_id = lizard_payload->recv_message->value;
@@ -353,6 +420,11 @@ void process_lizard_disconnect(lizard_mover *lizard_payload)
     (*(lizard_payload->slot_lizards))++;
 }
 
+/**
+ * @brief - Process a lizard message
+ *
+ * @param lizard_payload  - Lizard mover object
+ */
 void process_lizard_message(lizard_mover *lizard_payload)
 {
     switch (lizard_payload->recv_message->type)
@@ -371,6 +443,13 @@ void process_lizard_message(lizard_mover *lizard_payload)
     }
 }
 
+/**
+ * @brief - Serialize the lizard mover object
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param buffer - Buffer to store the serialized object
+ * @param buffer_size - Size of the buffer
+ */
 void serialize_lizard_mover(lizard_mover *lizard_payload, char **buffer, size_t *buffer_size)
 {
     // Calculate the size of the buffer
@@ -409,6 +488,12 @@ void serialize_lizard_mover(lizard_mover *lizard_payload, char **buffer, size_t 
     }
 }
 
+/**
+ * @brief - Deserialize the lizard mover object
+ *
+ * @param lizard_payload  - Lizard mover object
+ * @param buffer - Buffer of the serialized object
+ */
 void deserialize_lizard_mover(lizard_mover *lizard_payload, char *buffer)
 {
     char *ptr = buffer;

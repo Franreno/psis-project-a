@@ -1,5 +1,12 @@
 #include "util.h"
 
+/**
+ * @brief - Calculates the new position based on the direction
+ *
+ * @param x - Pointer to the x coordinate
+ * @param y - Pointer to the y coordinate
+ * @param direction - Direction to move
+ */
 void new_position(int *x, int *y, direction_t direction)
 {
     switch (direction)
@@ -29,6 +36,14 @@ void new_position(int *x, int *y, direction_t direction)
     }
 }
 
+/**
+ * @brief - Calculates the new position based on the direction and handles overflow
+ *
+ * @param x - Pointer to the x coordinate
+ * @param y - Pointer to the y coordinate
+ * @param direction - Direction to move
+ * @param overflow - Pointer to the overflow variable
+ */
 void tail_position_calc(int *x, int *y, direction_t direction, char *overflow)
 {
     *overflow = 0;

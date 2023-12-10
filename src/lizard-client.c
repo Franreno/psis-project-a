@@ -1,11 +1,13 @@
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
-#include <zmq.h>
-#include <ncurses.h>
-#include "remote-char.h"
+#include "default_consts.h"
 
+/**
+ * @brief Create a and connect socket object
+ *
+ * @param server_socket_address  - Address of the server socket
+ * @param context  - ZMQ context
+ * @param requester - ZMQ socket
+ * @return int - 0 if successful, -1 otherwise
+ */
 int create_and_connect_socket(char *server_socket_address, void **context, void **requester)
 {
     // Create context
@@ -37,6 +39,13 @@ int create_and_connect_socket(char *server_socket_address, void **context, void 
     return 0;
 }
 
+/**
+ * @brief - Connect a lizard to the server
+ *
+ * @param requester  - ZMQ socket
+ * @param send_message - Message to send to the server
+ * @return int - Lizard id if successful, -1 otherwise
+ */
 int connect_lizard(void *requester, message_to_server *send_message)
 {
     int lizard_id;
@@ -61,6 +70,14 @@ int connect_lizard(void *requester, message_to_server *send_message)
     return lizard_id;
 }
 
+/**
+ * @brief - Move a lizard on the screen
+ *
+ * @param lizard_id - Lizard id
+ * @param requester - ZMQ socket
+ * @param send_message - Message to send to the server
+ * @return int - 0 if successful, -1 otherwise
+ */
 int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
 {
     int keypress;
@@ -86,26 +103,26 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
         // Check if the character is an arrow key, 'q' or 'Q'
         switch (keypress)
         {
-            case KEY_UP:
-                send_message->direction = UP;
-                break;
-            case KEY_DOWN:
-                send_message->direction = DOWN;
-                break;
-            case KEY_LEFT:
-                send_message->direction = LEFT;
-                break;
-            case KEY_RIGHT:
-                send_message->direction = RIGHT;
-                break;
-            case 'q':
-                stop = 1;
-                break;
-            case 'Q':
-                stop = 1;
-                break;
-            default:
-                continue;
+        case KEY_UP:
+            send_message->direction = UP;
+            break;
+        case KEY_DOWN:
+            send_message->direction = DOWN;
+            break;
+        case KEY_LEFT:
+            send_message->direction = LEFT;
+            break;
+        case KEY_RIGHT:
+            send_message->direction = RIGHT;
+            break;
+        case 'q':
+            stop = 1;
+            break;
+        case 'Q':
+            stop = 1;
+            break;
+        default:
+            continue;
         }
 
         // Send lizard movement message to server
@@ -134,15 +151,23 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
         refresh();
     }
 
-    // End ncurses mode and 
+    // End ncurses mode and
     endwin();
-    
+
     printf("Lizard movement stopped\n");
     printf("Your lizard's final score was %d\n", lizard_score);
 
     return 0;
 }
 
+/**
+ * @brief - Disconnect a lizard from the server
+ *
+ * @param lizard_id - Lizard id
+ * @param requester - ZMQ socket
+ * @param send_message - Message to send to the server
+ * @return int - 0 if successful, -1 otherwise
+ */
 int disconnect_lizard(int lizard_id, void *requester, message_to_server *send_message)
 {
     int server_reply;
@@ -165,6 +190,13 @@ int disconnect_lizard(int lizard_id, void *requester, message_to_server *send_me
     return 0;
 }
 
+/**
+ * @brief - Main function
+ *
+ * @param argc - Number of command line arguments
+ * @param argv - Command line arguments
+ * @return int - 0 if successful, -1 otherwise
+ */
 int main(int argc, char *argv[])
 {
     void *context;

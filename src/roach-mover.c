@@ -1,7 +1,16 @@
-#include <zmq.h>
-#include "window.h"
 #include "roach-mover.h"
 
+/**
+ * @brief - Create a new roach mover
+ *
+ * @param roach_payload - Pointer to the roach mover
+ * @param recv_message - Message received from the server
+ * @param roaches - Array of roaches
+ * @param responder - ZMQ socket
+ * @param num_roaches - Number of roaches
+ * @param slot_roaches - Number of available slots
+ * @param game_window - Game window
+ */
 void new_roach_mover(roach_mover **roach_payload,
                      message_to_server *recv_message,
                      roach *roaches,
@@ -18,6 +27,11 @@ void new_roach_mover(roach_mover **roach_payload,
     (*roach_payload)->recv_message = recv_message;
 }
 
+/**
+ * @brief - Process a roach message
+ *
+ * @param roach_payload - Pointer to the roach mover
+ */
 void process_roach_message(roach_mover *roach_payload)
 {
     switch (roach_payload->recv_message->type)
@@ -36,6 +50,11 @@ void process_roach_message(roach_mover *roach_payload)
     }
 }
 
+/**
+ * @brief - Proccess a connection to the server
+ *
+ * @param roach_payload - Pointer to the roach mover
+ */
 void process_roach_connect(roach_mover *roach_payload)
 {
     int server_reply = 0;
@@ -92,6 +111,13 @@ void process_roach_connect(roach_mover *roach_payload)
     }
 }
 
+/**
+ * @brief - Process a connection to the display app
+ *
+ * @param roach_payload - Pointer to the roach mover
+ * @param connected_roach - Roach to inject
+ * @param received_id - Position of the roach in the array
+ */
 void process_roach_inject_connect(roach_mover *roach_payload, roach connected_roach, int received_id)
 {
     // Inject means it was received from the server, if received
@@ -107,6 +133,14 @@ void process_roach_inject_connect(roach_mover *roach_payload, roach connected_ro
     roach_move(roach_payload, roach_payload->roaches[received_id].x, roach_payload->roaches[received_id].y, received_id);
 }
 
+/**
+ * @brief - Calculate the new position of the roach
+ *
+ * @param roach_payload - Pointer to the roach mover
+ * @param new_x - Pointer to the new x position
+ * @param new_y - Pointer to the new y position
+ * @return int - 1 if the roach can move, 0 otherwise
+ */
 int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
 {
     // Get the roach id
@@ -136,6 +170,13 @@ int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
     return 1;
 }
 
+/**
+ * @brief - Draw the tail of the roach if necessary
+ *
+ * @param roach_payload - Pointer to the roach mover
+ * @param roach_id - Roach id
+ * @param tail_direction - Direction of the tail
+ */
 int refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int new_y, char is_eaten)
 {
     int roach_id = roach_payload->recv_message->value;
@@ -155,6 +196,11 @@ int refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int n
     return 1;
 }
 
+/**
+ * @brief - Process the roach movement
+ *
+ * @param roach_payload  - Pointer to the roach mover
+ */
 void process_roach_movement(roach_mover *roach_payload)
 {
     int success = 0;
@@ -172,6 +218,14 @@ void process_roach_movement(roach_mover *roach_payload)
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 }
 
+/**
+ * @brief - Erase and Draw the roach in the new position
+ *
+ * @param roach_payload - Pointer to the roach mover
+ * @param new_x - New x position
+ * @param new_y - New y position
+ * @param roach_id - Roach id
+ */
 void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id)
 {
     // Erase the roach from the screen
@@ -185,6 +239,11 @@ void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id)
     window_draw(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD, ROACH, roach_id);
 }
 
+/**
+ * @brief - Process a disconnection
+ *
+ * @param roach_payload - Pointer to the roach mover
+ */
 void process_roach_disconnect(roach_mover *roach_payload)
 {
     int success = 0;
@@ -199,6 +258,13 @@ void process_roach_disconnect(roach_mover *roach_payload)
     (*(roach_payload->slot_roaches))++;
 }
 
+/**
+ * @brief - Serialize the roach mover
+ *
+ * @param roach_payload  - Pointer to the roach mover
+ * @param buffer - Pointer to the buffer
+ * @param buffer_size - Pointer to the buffer size
+ */
 void serialize_roach_mover(roach_mover *roach_payload, char **buffer, size_t *buffer_size)
 {
     // Calculate the size of the buffer
@@ -233,6 +299,12 @@ void serialize_roach_mover(roach_mover *roach_payload, char **buffer, size_t *bu
     }
 }
 
+/**
+ * @brief - Deserialize the roach mover
+ *
+ * @param roach_payload - Pointer to the roach mover
+ * @param buffer - Pointer to the buffer
+ */
 void deserialize_roach_mover(roach_mover *roach_payload, char *buffer)
 {
     char *ptr = buffer;

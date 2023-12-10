@@ -1,21 +1,15 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <time.h>
-#include <string.h>
-
-#include <zmq.h>
-
-#include <ncurses.h>
-
-#include "remote-char.h"
+#include "default_consts.h"
 #include "logger.h"
 #include "window.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
 
+/**
+ * @brief Receives a message from a socket
+ *
+ * @param socket  Socket to receive the message from
+ * @return char* The received message
+ */
 static char *s_recv(void *socket)
 {
     enum
@@ -31,6 +25,16 @@ static char *s_recv(void *socket)
     return strndup(buffer, sizeof(buffer) - 1);
 }
 
+/**
+ * @brief Create a and connect sockets object
+ *
+ * @param req_server_socket_address - Address of the server socket to connect to
+ * @param sub_server_socket_address - Address of the server socket to connect to
+ * @param context - ZMQ context
+ * @param requester - ZMQ REQ socket
+ * @param subscriber - ZMQ SUB socket
+ * @return int - 0 if successful, -1 otherwise
+ */
 int create_and_connect_sockets(char *req_server_socket_address, char *sub_server_socket_address, void **context, void **requester, void **subscriber)
 {
     // Create context
@@ -85,7 +89,7 @@ int create_and_connect_sockets(char *req_server_socket_address, char *sub_server
 int main(int argc, char *argv[])
 {
     // Initialize logger
-    log_init("Display-app.log");
+    log_init("display-app.log");
     void *context;
     void *requester;
     void *subscriber;
