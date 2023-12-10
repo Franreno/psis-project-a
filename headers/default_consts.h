@@ -15,7 +15,16 @@
 #define MAX_LIZARDS_ALLOWED 10
 #define MAX_LIZARD_SCORE 50
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <fcntl.h>
 #include <time.h>
+#include <string.h>
+#include <signal.h>
+#include <zmq.h>
+#include <ncurses.h>
 
 typedef enum direction_t
 {

@@ -1,5 +1,12 @@
 #include "window.h"
 
+/**
+ * @brief - Initialize the ncurses window
+ *
+ * @param data - Pointer to the window_data struct
+ * @param width - Width of the window
+ * @param height - Height of the window
+ */
 void window_init(window_data **data, int width, int height)
 {
     *data = (window_data *)malloc(sizeof(window_data));
@@ -12,6 +19,14 @@ void window_init(window_data **data, int width, int height)
     init_window_matrix((*data)->matrix, width, height);
 }
 
+/**
+ * @brief - Initialize the ncurses window with a matrix
+ *
+ * @param data - Pointer to the window_data struct
+ * @param width - Width of the window
+ * @param height - Height of the window
+ * @param serialized_matrix - Serialized matrix to initialize the window with
+ */
 void window_init_with_matrix(window_data **data, int width, int height, char *serialized_matrix)
 {
     // Allocate memory for window_data
@@ -54,6 +69,13 @@ void window_init_with_matrix(window_data **data, int width, int height, char *se
     deserialize_window_matrix((*data)->matrix, serialized_matrix);
 }
 
+/**
+ * @brief - Initialize the ncurses window matrix
+ *
+ * @param matrix - Pointer to the window_matrix struct
+ * @param width - Width of the window
+ * @param height -  Height of the window
+ */
 void init_window_matrix(window_matrix *matrix, int width, int height)
 {
     matrix->width = width;
@@ -67,6 +89,12 @@ void init_window_matrix(window_matrix *matrix, int width, int height)
     }
 }
 
+/**
+ * @brief Get the char priority object
+ *
+ * @param ch - Character to get the priority of
+ * @return int - Priority of the character
+ */
 int get_char_priority(char ch)
 {
     if (isalpha(ch))
@@ -78,6 +106,16 @@ int get_char_priority(char ch)
     return 0;
 }
 
+/**
+ * @brief - Add a character to the stack at a given position
+ *
+ * @param matrix - Pointer to the window_matrix struct
+ * @param x - x coordinate
+ * @param y - y coordinate
+ * @param ch - Character to add
+ * @param client_id - Client id
+ * @param position_in_array - positon of client id in its array
+ */
 void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int client_id, int position_in_array)
 {
     int index = INDEX(matrix->width, x, y);
@@ -125,6 +163,16 @@ void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int cl
     }
 }
 
+/**
+ * @brief - Draw a character at a given position
+ *
+ * @param matrix - Pointer to the window_matrix struct
+ * @param x - x coordinate
+ * @param y - y coordinate
+ * @param ch - Character to add
+ * @param client_id - Client id
+ * @param position_in_array - positon of client id in its array
+ */
 void window_draw(window_data *data, int x, int y, char ch, int client_id, int position_in_array)
 {
     // Add the character to the stack with priority
@@ -141,7 +189,14 @@ void window_draw(window_data *data, int x, int y, char ch, int client_id, int po
     wrefresh(data->win);
 }
 
-// This function peeks at the character below the top character in the stack at a given position
+/**
+ * @brief - Peek at the character below the top character in the stack at a given position
+ *
+ * @param matrix - Pointer to the window_matrix struct
+ * @param x - x coordinate
+ * @param y - y coordinate
+ * @return char - Character below the top character in the stack
+ */
 char window_matrix_peek_below_top_char(window_matrix *matrix, int x, int y)
 {
     int index = INDEX(matrix->width, x, y);
@@ -156,7 +211,14 @@ char window_matrix_peek_below_top_char(window_matrix *matrix, int x, int y)
     return ' '; // Return a space if the stack is empty or has only one element
 }
 
-// This function removes the top character from the stack
+/**
+ * @brief - Remove the top character from the stack at a given position
+ *
+ * @param matrix - Pointer to the window_matrix struct
+ * @param x - x coordinate
+ * @param y - y coordinate
+ * @return char - Top character from the stack
+ */
 char window_matrix_remove_top_char(window_matrix *matrix, int x, int y)
 {
     int index = INDEX(matrix->width, x, y);
@@ -174,6 +236,14 @@ char window_matrix_remove_top_char(window_matrix *matrix, int x, int y)
     return ' '; // Return a space if the stack is empty
 }
 
+/**
+ * @brief - Remove a character from the stack at a given position
+ *
+ * @param matrix- Pointer to the window_matrix struct
+ * @param x- x coordinate
+ * @param y- y coordinate
+ * @param ch- Character to remove
+ */
 void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, char ch)
 {
     int index = INDEX(matrix->width, x, y);
@@ -201,6 +271,14 @@ void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, c
     }
 }
 
+/**
+ * @brief - Erase a character from the stack at a given position
+ *
+ * @param data - Pointer to the window_data struct
+ * @param x - x coordinate
+ * @param y - y coordinate
+ * @param ch - Character to erase
+ */
 void window_erase(window_data *data, int x, int y, char ch)
 {
     // Remove the specified character from the stack
@@ -229,11 +307,21 @@ void window_erase(window_data *data, int x, int y, char ch)
     wrefresh(data->win);
 }
 
+/**
+ * @brief - Refresh the ncurses window
+ *
+ * @param data - Pointer to the window_data struct
+ */
 void window_refresh(window_data *data)
 {
     wrefresh(data->win);
 }
 
+/**
+ * @brief - Destroy the ncurses window
+ *
+ * @param data - Pointer to the window_data struct
+ */
 void window_destroy(window_data *data)
 {
     if (data != NULL)
@@ -252,12 +340,25 @@ void window_destroy(window_data *data)
     endwin();
 }
 
+/**
+ * @brief Get the cell object
+ *
+ * @param matrix  - Pointer to the window_matrix struct
+ * @param x - x coordinate
+ * @param y - y coordinate
+ * @return layer_cell* - Pointer to the cell at (x, y)
+ */
 layer_cell *get_cell(window_matrix *matrix, int x, int y)
 {
     int index = INDEX(matrix->width, x, y);
     return &matrix->cells[index];
 }
 
+/**
+ * @brief - Free the window matrix
+ *
+ * @param matrix  - Pointer to the window_matrix struct
+ */
 void free_window_matrix(window_matrix *matrix)
 {
     for (int i = 0; i < matrix->width * matrix->height; ++i)
@@ -267,6 +368,13 @@ void free_window_matrix(window_matrix *matrix)
     free(matrix->cells);
 }
 
+/**
+ * @brief - Serialize the window matrix
+ *
+ * @param matrix  - Pointer to the window_matrix struct
+ * @param buffer - Pointer to the buffer
+ * @param buffer_size - Pointer to the buffer size
+ */
 void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffer_size)
 {
     int cell_count = matrix->width * matrix->height;
@@ -317,7 +425,12 @@ void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffe
         }
     }
 }
-
+/**
+ * @brief - Deserialize the window matrix
+ *
+ * @param matrix - Pointer to the window_matrix struct
+ * @param buffer- Pointer to the buffer
+ */
 void deserialize_window_matrix(window_matrix *matrix, char *buffer)
 {
     char *ptr = buffer;
@@ -363,6 +476,11 @@ void deserialize_window_matrix(window_matrix *matrix, char *buffer)
     }
 }
 
+/**
+ * @brief - Draw the entire matrix
+ *
+ * @param data - Pointer to the window_data struct
+ */
 void draw_entire_matrix(window_data *data)
 {
     if (data == NULL || data->win == NULL || data->matrix == NULL)
@@ -391,32 +509,4 @@ void draw_entire_matrix(window_data *data)
 
     // Refresh the window to update the screen
     wrefresh(data->win);
-}
-
-void print_window_matrix(window_matrix *matrix)
-{
-    if (matrix == NULL)
-    {
-        printf("Matrix is NULL\n");
-        return;
-    }
-
-    printf("Matrix Width: %d, Height: %d\n", matrix->width, matrix->height);
-    for (int y = 0; y < matrix->height; y++)
-    {
-        for (int x = 0; x < matrix->width; x++)
-        {
-            int index = y * matrix->width + x;
-            layer_cell cell = matrix->cells[index];
-            printf("Cell [%d,%d]: Capacity: %d, Top: %d, Characters: ", x, y, cell.capacity, cell.top);
-            if (cell.top >= 0)
-            {
-                for (int j = 0; j <= cell.top; j++)
-                {
-                    printf("%c ", cell.stack[j].ch);
-                }
-            }
-            printf("\n");
-        }
-    }
 }

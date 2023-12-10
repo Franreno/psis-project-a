@@ -1,10 +1,13 @@
-#include <zmq.h>
-#include "remote-char.h"
+#include "default_consts.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
 #include "logger.h"
 #include "window.h"
 
+/**
+ * @brief Print the constants the server is running with
+ *
+ */
 void print_constants()
 {
     printf("The server is running with the following parameters:\n");
@@ -18,6 +21,16 @@ void print_constants()
     printf("MAX_LIZARD_SCORE: %d\n", MAX_LIZARD_SCORE);
 }
 
+/**
+ * @brief Create and connect sockets for clients to connect to
+ *
+ * @param rep_server_socket_address - REP server socket address
+ * @param pub_server_socket_address - PUB server socket address
+ * @param context - ZMQ context
+ * @param responder - ZMQ socket
+ * @param publisher - ZMQ socket
+ * @return int - 0 if successful, -1 otherwise
+ */
 int create_and_connect_sockets(char *rep_server_socket_address, char *pub_server_socket_address, void **context, void **responder, void **publisher)
 {
     // Create context
@@ -70,6 +83,15 @@ int create_and_connect_sockets(char *rep_server_socket_address, char *pub_server
     return 0;
 }
 
+/**
+ * @brief - Serialize the window matrix, lizard mover and roach mover and send to the
+ * connecting display app
+ *
+ * @param responder  - ZMQ socket
+ * @param data - Window data
+ * @param roach_mover - Roach mover
+ * @param lizard_mover - Lizard mover
+ */
 void process_display_app_message(void *responder, window_data *data, roach_mover *roach_mover, lizard_mover *lizard_mover)
 {
     // Serialize the window matrix
@@ -132,6 +154,14 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
     free(serialized_lizard_mover);
 }
 
+/**
+ * @brief - Publishes to the subscriber the move that happeend
+ *
+ * @param publisher - ZMQ socket
+ * @param recv_message- Message received from the client
+ * @param roach_payload- Roach mover
+ * @param lizard_payload- Lizard mover
+ */
 void publish_movement(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
     // Create field update message
@@ -155,6 +185,14 @@ void publish_movement(void *publisher, message_to_server recv_message, roach_mov
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
+/**
+ * @brief - Publishes to the subscriber the connect that happeend
+ *
+ * @param publisher - ZMQ socket
+ * @param recv_message - Message received from the client
+ * @param roach_payload - Roach mover
+ * @param lizard_payload - Lizard mover
+ */
 void publish_connect(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
     // Create field update message
@@ -185,6 +223,12 @@ void publish_connect(void *publisher, message_to_server recv_message, roach_move
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
+/**
+ * @brief - Publishes to the subscriber the disconnection of a client
+ *
+ * @param publisher  - ZMQ socket
+ * @param recv_message - Message received from the client
+ */
 void publish_disconnect(void *publisher, message_to_server recv_message)
 {
     // Create field update message
@@ -197,6 +241,13 @@ void publish_disconnect(void *publisher, message_to_server recv_message)
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
+/**
+ * @brief - Respawn the eaten roaches after 5 seconds
+ *
+ * @param roach_payload - Roach mover
+ * @param eaten_roaches  - Array of eaten roaches
+ * @param amount_eaten_roaches - Amount of eaten roaches
+ */
 void respawn_eaten_roaches(roach_mover *roach_payload, roach **eaten_roaches, int *amount_eaten_roaches)
 {
     time_t current_time = time(NULL);

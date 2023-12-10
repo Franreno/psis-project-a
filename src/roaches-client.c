@@ -1,18 +1,23 @@
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
-#include <time.h>
-#include <zmq.h>
-#include "remote-char.h"
+#include "default_consts.h"
 
 volatile sig_atomic_t stop = 0;
 
+/**
+ * @brief - Handle SIGINT signal
+ */
 void handle_sigint()
 {
     stop = 1;
 }
 
+/**
+ * @brief Create a and connect socket object
+ *
+ * @param server_socket_address  - Address of the server socket
+ * @param context  - ZMQ context
+ * @param requester - ZMQ socket
+ * @return int - 0 if successful, -1 otherwise
+ */
 int create_and_connect_socket(char *server_socket_address, void **context, void **requester)
 {
     // Create context
@@ -44,6 +49,15 @@ int create_and_connect_socket(char *server_socket_address, void **context, void 
     return 0;
 }
 
+/**
+ * @brief - Generate and Connect a roach to the server
+ *
+ * @param num_roaches - Number of roaches to generate
+ * @param roaches - Array of roaches
+ * @param requester - ZMQ socket
+ * @param send_message - Message to send to the server
+ * @return int - 0 if successful, -1 otherwise
+ */
 int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester, message_to_server *send_message)
 {
     int server_reply;
@@ -58,7 +72,7 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
         // Generate a random score for the roach
         roaches[i] = rand() % MAX_ROACH_SCORE + 1;
         send_message->value = roaches[i];
-        
+
         // Send message to server connecting a roach
         zmq_send(requester, send_message, sizeof(message_to_server), 0);
         printf("Attempting to connect roach with score: %d\n", roaches[i]);
@@ -81,6 +95,16 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
     return 0;
 }
 
+/**
+ * @brief - Move roaches on the screen
+ *
+ * @param num_roaches - Number of roaches
+ * @param roaches - Array of roaches
+ * @param requester - ZMQ socket
+ * @param send_message - Message to send to the server
+ * @param stop - Flag to stop roaches movement
+ * @return int - 0 if successful, -1 otherwise
+ */
 int move_roaches(int num_roaches, int *roaches, void *requester, message_to_server *send_message, volatile sig_atomic_t *stop)
 {
     int sleep_delay;
@@ -124,6 +148,15 @@ int move_roaches(int num_roaches, int *roaches, void *requester, message_to_serv
     return 0;
 }
 
+/**
+ * @brief - Disconnect roaches from the server
+ *
+ * @param num_roaches  - Number of roaches
+ * @param roaches - Array of roaches
+ * @param requester -   ZMQ socket
+ * @param send_message - Message to send to the server
+ * @return int - 0 if successful, -1 otherwise
+ */
 int disconnect_roaches(int num_roaches, int *roaches, void *requester, message_to_server *send_message)
 {
     int server_reply;

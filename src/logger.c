@@ -4,6 +4,11 @@
 
 static FILE *log_file = NULL;
 
+/**
+ * @brief - Initialize the logger
+ *
+ * @param filename - Name of the log file
+ */
 void log_init(const char *filename)
 {
     log_file = fopen(filename, "a");
@@ -13,6 +18,12 @@ void log_init(const char *filename)
     }
 }
 
+/**
+ * @brief - Write to the log file
+ *
+ * @param format - Format of the string to write
+ * @param ... - Arguments to the format string
+ */
 void log_write(const char *format, ...)
 {
     if (log_file != NULL)
@@ -27,6 +38,9 @@ void log_write(const char *format, ...)
     }
 }
 
+/**
+ * @brief - Close the log file
+ */
 void log_close()
 {
     if (log_file != NULL)

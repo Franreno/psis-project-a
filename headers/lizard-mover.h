@@ -2,6 +2,7 @@
 #define LIZARD_MOVER_H
 
 #include "util.h"
+#include "window.h"
 
 typedef struct lizard_mover
 {
