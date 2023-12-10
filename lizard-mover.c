@@ -50,19 +50,35 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     (*(lizard_payload->num_lizards))++;
     (*(lizard_payload->slot_lizards))--;
 
-    // Initialize the lizard in a valid random position and with score 0
+    // Initialize the lizard
     lizard_payload->lizards[new_lizard_id].ch = 'A' + new_lizard_id;
-    lizard_payload->lizards[new_lizard_id].x = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
-    lizard_payload->lizards[new_lizard_id].y = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
     lizard_payload->lizards[new_lizard_id].previous_direction = rand() % 4;
     lizard_payload->recv_message->direction = lizard_payload->lizards[new_lizard_id].previous_direction;
     lizard_payload->lizards[new_lizard_id]
         .score = 0;
 
+    int new_x;
+    int new_y;
+    layer_cell *cell;
+
+    do
+    {
+        // Get a random position
+        new_x = rand() % (WINDOW_SIZE - 2) + 1;
+        new_y = rand() % (WINDOW_SIZE - 2) + 1;
+
+        // Get the stack info of the new position
+        cell = get_cell(lizard_payload->game_window->matrix, new_x, new_y);
+    } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH);
+    
+    // Once the position is valid, initialize the lizard in the position
+    lizard_payload->lizards[new_lizard_id].x = new_x;
+    lizard_payload->lizards[new_lizard_id].y = new_y;
+
     // Draw the lizard in the random position
     window_draw(lizard_payload->game_window, lizard_payload->lizards[new_lizard_id].x, lizard_payload->lizards[new_lizard_id].y, (lizard_payload->lizards[new_lizard_id].ch) | A_BOLD, LIZARD, new_lizard_id);
 
-    // TODO - DRAW LIZARDS TAIL
+    // Draw the tail
     draw_lizard_tail(lizard_payload, new_lizard_id, lizard_payload->lizards[new_lizard_id].previous_direction);
 
     // Reply to lizard client indicating position of the new lizard in the array
