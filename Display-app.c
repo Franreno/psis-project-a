@@ -220,10 +220,6 @@ int main()
             // Point movers to the message received
             roach_payload->recv_message = &recv_message;
             lizard_payload->recv_message = &recv_message;
-            log_write("Received message from client %d\n", recv_message.client_id);
-            log_write("Received message type %d\n", recv_message.type);
-            log_write("Received message value %d\n", recv_message.value);
-            log_write("Received message direction %d\n", recv_message.direction);
 
             switch (recv_message.client_id)
             {
@@ -233,8 +229,9 @@ int main()
                 break;
             case ROACH:
                 log_write("Processing roach message\n");
-                refresh_eaten_roach_for_display(roach_payload, field_update_message->new_x, field_update_message->new_y, field_update_message->is_eaten);
-                process_roach_movement(roach_payload);
+                int should_process_movement = refresh_eaten_roach_for_display(roach_payload, field_update_message->new_x, field_update_message->new_y, field_update_message->is_eaten);
+                if (should_process_movement)
+                    process_roach_movement(roach_payload);
                 break;
             }
 

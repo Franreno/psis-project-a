@@ -120,7 +120,7 @@ int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
     return 1;
 }
 
-void refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int new_y, char is_eaten)
+int refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int new_y, char is_eaten)
 {
     int roach_id = roach_payload->recv_message->value;
     // get the roach from the array
@@ -132,7 +132,11 @@ void refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int 
         roach->is_eaten = 0;
         roach->x = new_x;
         roach->y = new_y;
+        roach_move(roach_payload, new_x, new_y, roach_id);
+        return 0;
     }
+
+    return 1;
 }
 
 void process_roach_movement(roach_mover *roach_payload)

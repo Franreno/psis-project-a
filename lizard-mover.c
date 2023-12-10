@@ -97,23 +97,18 @@ void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connecte
 
 int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new_y)
 {
-    // printf("Starting calculate_lizard_movement\n");
 
     // Get the lizzard id and direction
     int lizard_id = lizard_payload->recv_message->value;
     direction_t direction = lizard_payload->recv_message->direction;
-    // printf("Lizard ID: %d, Direction: %d\n", lizard_id, direction);
 
     // Calculate the new position the lizard wants to move to
     *new_x = lizard_payload->lizards[lizard_id].x;
     *new_y = lizard_payload->lizards[lizard_id].y;
     new_position(new_x, new_y, direction);
 
-    // printf("New position calculated: X=%d, Y=%d\n", *new_x, *new_y);
-
     // Get the stack info of the new position
     layer_cell *cell = get_cell(lizard_payload->game_window->matrix, *new_x, *new_y);
-    // printf("Got cell at new position\n");
 
     // Check the top element of the stack to see if it's a lizard
     if (cell->top == -1)
@@ -123,7 +118,6 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
 
     if (cell->stack[cell->top].client_id == LIZARD)
     {
-        // printf("Top element is a lizard\n");
 
         int id_1 = lizard_id;
         int id_2 = cell->stack[cell->top].position_in_array;
@@ -134,12 +128,10 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         // Update the lizards scores
         lizard_payload->lizards[id_1].score = new_lizard_score;
         lizard_payload->lizards[id_2].score = new_lizard_score;
-        // printf("Lizards %d and %d new score: %d\n", id_1, id_2, new_lizard_score);
 
         // Check if the lizards dropped below the maximum score
         if (new_lizard_score < MAX_LIZARD_SCORE)
         {
-            // printf("Scores below max, updating tails\n");
 
             // erase the tail just to make sure
             erase_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
@@ -301,13 +293,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 void lizard_draw(lizard_mover *lizard_payload, int lizard_id)
 {
     // Draw the lizard in the new position
-    // printf("Drawing lizard\n");
     window_draw(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD, LIZARD, lizard_id);
-    // printf("Lizard drawn\n");
-    // printf("Drawing lizard tail\n");
-    // printf("Lizard id: %d\n", lizard_id);
-    // printf(" Aaaaaa Lizard direction: %d\n", lizard_payload->recv_message->direction);
-    // printf("Lizard previous direction: %d\n", lizard_payload->lizards[lizard_id].previous_direction);
     draw_lizard_tail(lizard_payload, lizard_id, lizard_payload->recv_message->direction);
 }
 

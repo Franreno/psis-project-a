@@ -151,9 +151,6 @@ void publish_movement(void *publisher, message_to_server recv_message, roach_mov
         break;
     }
 
-    field_update_message.num_roaches = 10;
-    field_update_message.num_lizards = 10;
-
     zmq_send(publisher, "field_update_movement", strlen("field_update_movement"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
@@ -325,8 +322,6 @@ int main(int argc, char *argv[])
         zmq_recv(responder, &recv_message, sizeof(message_to_server), 0);
         log_write("Received message from client %d\n", recv_message.client_id);
 
-        respawn_eaten_roaches(eaten_roaches, &eaten_roaches_count);
-
         // Print the scores in the score window
         int i, j;
         for (i = 0, j = 0; j < num_lizards; i++)
@@ -374,13 +369,10 @@ int main(int argc, char *argv[])
             break;
         }
 
+        respawn_eaten_roaches(eaten_roaches, &eaten_roaches_count);
+
         if (recv_message.client_id == DISPLAY_APP || recv_message.message_accepted == 0)
             continue;
-
-        // Check if there were any eaten roaches
-        if (last_cycle_eaten_roaches_count != eaten_roaches_count)
-        {
-        }
 
         // Publish the message to the display app
         switch (recv_message.type)
