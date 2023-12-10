@@ -165,6 +165,7 @@ void publish_movement(void *publisher, message_to_server recv_message, roach_mov
     case ROACH:
         field_update_message.new_x = roach_payload->roaches[recv_message.value].x;
         field_update_message.new_y = roach_payload->roaches[recv_message.value].y;
+        field_update_message.is_eaten = roach_payload->roaches[recv_message.value].is_eaten;
         break;
     }
 
@@ -369,13 +370,6 @@ int main()
         if (last_cycle_eaten_roaches_count != eaten_roaches_count)
         {
         }
-
-        // Need to publish
-        // Updates of movement
-        // Updates of connect
-        // Updates of disconnect
-        // Updates on roach eaten / respawned
-        // Update of lizard score
 
         // Publish the message to the display app
         switch (recv_message.type)

@@ -91,6 +91,7 @@ int main()
 
     zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_movement", 3);
     zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_connect", 3);
+    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_disconnect", 3);
 
     // Initialize ncurses
     initscr();
@@ -159,16 +160,54 @@ int main()
     window_init_with_matrix(&game_window, WINDOW_SIZE, WINDOW_SIZE, buffer);
     draw_entire_matrix(game_window);
 
+    // Create a new window for the scores
+    WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
+
     // Include not serialized components into the movers
     roach_payload->game_window = game_window;
     lizard_payload->game_window = game_window;
     lizard_payload->should_use_responder = 0;
     roach_payload->should_use_responder = 0;
 
+    // Create pointer to eaten roaches
+    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
+    int eaten_roaches_count = 0;
+
+    roach_payload->eaten_roaches = eaten_roaches;
+    roach_payload->amount_eaten_roaches = &eaten_roaches_count;
+    lizard_payload->eaten_roaches = eaten_roaches;
+    lizard_payload->amount_eaten_roaches = &eaten_roaches_count;
+    roach_payload->lizards = lizard_payload->lizards;
+    lizard_payload->roaches = roach_payload->roaches;
+
     while (1)
     {
         // Receive the field update
         char *type = s_recv(subscriber);
+        // Print the scores in the score window
+        int i, j;
+        for (i = 0, j = 0; j < *lizard_payload->num_lizards; i++)
+        {
+            if (lizard_payload->lizards[i].ch == -1)
+                continue;
+
+            // j is the line number and only increments when a lizard is printed
+            mvwprintw(score_window, j, 0, "Lizard id %c: Score %d", (char)lizard_payload->lizards[i].ch, lizard_payload->lizards[i].score);
+            j++;
+
+            // Clear the rest of the line
+            wclrtoeol(score_window);
+        }
+
+        // Clear the remaining lines
+        for (; j < MAX_LIZARDS_ALLOWED; j++)
+        {
+            wmove(score_window, j, 0);
+            wclrtoeol(score_window);
+        }
+
+        // Update the score window
+        wrefresh(score_window);
 
         if (strcmp(type, "field_update_movement") == 0)
         {
@@ -190,12 +229,12 @@ int main()
             {
             case LIZARD:
                 log_write("Processing lizard message\n");
-                // Update the lizard payload with the new direction
-                lizard_move(lizard_payload, recv_message.value, field_update_message->new_x, field_update_message->new_y);
+                process_lizard_movement(lizard_payload);
                 break;
             case ROACH:
                 log_write("Processing roach message\n");
-                roach_move(roach_payload, field_update_message->new_x, field_update_message->new_y, recv_message.value);
+                refresh_eaten_roach_for_display(roach_payload, field_update_message->new_x, field_update_message->new_y, field_update_message->is_eaten);
+                process_roach_movement(roach_payload);
                 break;
             }
 
@@ -228,6 +267,9 @@ int main()
             log_write("Received field update disconnect\n");
             field_update_disconnect *field_update_message = malloc(sizeof(field_update_disconnect));
             zmq_recv(subscriber, field_update_message, sizeof(field_update_disconnect), 0);
+            message_to_server recv_message = field_update_message->message;
+            roach_payload->recv_message = &recv_message;
+            lizard_payload->recv_message = &recv_message;
             switch (field_update_message->message.client_id)
             {
             case LIZARD:

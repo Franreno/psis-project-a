@@ -32,5 +32,5 @@ void process_roach_disconnect(roach_mover *roach_payload);
 void serialize_roach_mover(roach_mover *roach_payload, char **buffer, size_t *buffer_size);
 void deserialize_roach_mover(roach_mover *roach_payload, char *buffer);
 void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id);
-
+void refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int new_y, char is_eaten);
 #endif

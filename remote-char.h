@@ -75,6 +75,7 @@ typedef struct field_update_movement
     int new_x;
     int new_y;
     direction_t prev_direction;
+    char is_eaten;
 } field_update_movement;
 
 typedef struct field_update_connect

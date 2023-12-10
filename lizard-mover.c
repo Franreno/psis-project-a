@@ -73,7 +73,9 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     lizard_payload->lizards[new_lizard_id].x = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
     lizard_payload->lizards[new_lizard_id].y = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
     lizard_payload->lizards[new_lizard_id].previous_direction = rand() % 4;
-    lizard_payload->lizards[new_lizard_id].score = 0;
+    lizard_payload->recv_message->direction = lizard_payload->lizards[new_lizard_id].previous_direction;
+    lizard_payload->lizards[new_lizard_id]
+        .score = 0;
 
     // Draw the lizard in the random position
     window_draw(lizard_payload->game_window, lizard_payload->lizards[new_lizard_id].x, lizard_payload->lizards[new_lizard_id].y, (lizard_payload->lizards[new_lizard_id].ch) | A_BOLD, LIZARD, new_lizard_id);
@@ -103,7 +105,6 @@ void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connecte
     // Initialize the lizard in a received position
     lizard_payload->lizards[received_id] = connected_lizard;
     // printf("Lizard char: %c\n", lizard_payload->lizards[received_id].ch);
-    //  PRint lizards last direction
     // printf("Lizard previous direction: %d\n", lizard_payload->lizards[received_id].previous_direction);
 
     // Draw the lizard in the received position
@@ -114,21 +115,34 @@ void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connecte
 
 int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new_y)
 {
+    // printf("Starting calculate_lizard_movement\n");
+
     // Get the lizzard id and direction
     int lizard_id = lizard_payload->recv_message->value;
     direction_t direction = lizard_payload->recv_message->direction;
+    // printf("Lizard ID: %d, Direction: %d\n", lizard_id, direction);
 
     // Calculate the new position the lizard wants to move to
     *new_x = lizard_payload->lizards[lizard_id].x;
     *new_y = lizard_payload->lizards[lizard_id].y;
     new_position(new_x, new_y, direction);
 
+    // printf("New position calculated: X=%d, Y=%d\n", *new_x, *new_y);
+
     // Get the stack info of the new position
     layer_cell *cell = get_cell(lizard_payload->game_window->matrix, *new_x, *new_y);
+    // printf("Got cell at new position\n");
 
     // Check the top element of the stack to see if it's a lizard
+    if (cell->top == -1)
+    {
+        return 1;
+    }
+
     if (cell->stack[cell->top].client_id == LIZARD)
     {
+        // printf("Top element is a lizard\n");
+
         int id_1 = lizard_id;
         int id_2 = cell->stack[cell->top].position_in_array;
 
@@ -138,10 +152,13 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         // Update the lizards scores
         lizard_payload->lizards[id_1].score = new_lizard_score;
         lizard_payload->lizards[id_2].score = new_lizard_score;
+        // printf("Lizards %d and %d new score: %d\n", id_1, id_2, new_lizard_score);
 
         // Check if the lizards dropped below the maximum score
         if (new_lizard_score < MAX_LIZARD_SCORE)
         {
+            // printf("Scores below max, updating tails\n");
+
             // erase the tail just to make sure
             erase_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
             erase_lizard_tail(lizard_payload, id_2, lizard_payload->lizards[id_2].previous_direction);
@@ -161,6 +178,8 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
     // Check the top element of the stack to see if it's a roach
     if (cell->stack[cell->top].client_id == ROACH)
     {
+        // printf("Top element is a roach\n");
+
         char *roaches = (char *)malloc(sizeof(char) * cell->capacity);
         int *roaches_positions = (int *)malloc(sizeof(int) * cell->capacity);
         int num_roaches = 0;
@@ -175,6 +194,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
                 roaches[num_roaches] = cell->stack[i].ch;
                 roaches_positions[num_roaches] = cell->stack[i].position_in_array;
                 num_roaches++;
+                // printf("Roach found: %c at position %d\n", roaches[num_roaches - 1], roaches_positions[num_roaches - 1]);
             }
         }
 
@@ -194,6 +214,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
 
             // Increase the lizard score
             new_lizard_score += roaches[i] - '0';
+            // printf("Eating roach at position %d, new score: %d\n", roaches_positions[i], new_lizard_score);
         }
 
         // Update the lizard score

@@ -86,7 +86,7 @@ void process_roach_inject_connect(roach_mover *roach_payload, roach connected_ro
     // Initialize the roach in a received position
     roach_payload->roaches[received_id] = connected_roach;
 
-    window_draw(roach_payload->game_window, roach_payload->roaches[received_id].x, roach_payload->roaches[received_id].y, (roach_payload->roaches[received_id].ch + 48) | A_BOLD, ROACH, received_id);
+    roach_move(roach_payload, roach_payload->roaches[received_id].x, roach_payload->roaches[received_id].y, received_id);
 }
 
 int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
@@ -110,12 +110,27 @@ int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
     layer_cell *cell = get_cell(roach_payload->game_window->matrix, *new_x, *new_y);
 
     // Check the top element of the stack to see if it's a lizard, if it is don't move the roach
-    if (cell->stack[cell->top].client_id == LIZARD)
+    if (cell->top >= 0 && cell->stack[cell->top].client_id == LIZARD)
         return 0;
 
     // Otherwise, the roach can move to the new position
 
     return 1;
+}
+
+void refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int new_y, char is_eaten)
+{
+    int roach_id = roach_payload->recv_message->value;
+    // get the roach from the array
+    roach *roach = &(roach_payload->roaches[roach_id]);
+
+    // Had change
+    if (roach->is_eaten == 1 && is_eaten == 0)
+    {
+        roach->is_eaten = 0;
+        roach->x = new_x;
+        roach->y = new_y;
+    }
 }
 
 void process_roach_movement(roach_mover *roach_payload)
@@ -155,7 +170,8 @@ void process_roach_disconnect(roach_mover *roach_payload)
 
     window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
 
-    zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+    if (roach_payload->should_use_responder)
+        zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 
     (*(roach_payload->num_roaches))--;
     (*(roach_payload->slot_roaches))++;
