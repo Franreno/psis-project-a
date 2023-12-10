@@ -61,10 +61,26 @@ void process_roach_connect(roach_mover *roach_payload)
     (*(roach_payload->num_roaches))++;
     (*(roach_payload->slot_roaches))--;
 
-    // Initialize the roach in a valid random position
+    // Initialize the roach
     roach_payload->roaches[new_roach_id].ch = roach_payload->recv_message->value;
-    roach_payload->roaches[new_roach_id].x = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
-    roach_payload->roaches[new_roach_id].y = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
+
+    int new_x;
+    int new_y;
+    layer_cell *cell;
+
+    do
+    {
+        // Generate a random position
+        new_x = rand() % (WINDOW_SIZE - 2) + 1;
+        new_y = rand() % (WINDOW_SIZE - 2) + 1;
+
+        // Get the stack info of the new position
+        cell = get_cell(roach_payload->game_window->matrix, new_x, new_y);
+    } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH);
+
+    // Once the position is valid, update the roach position
+    roach_payload->roaches[new_roach_id].x = new_x;
+    roach_payload->roaches[new_roach_id].y = new_y;
 
     // Draw the roach in the random position
     window_draw(roach_payload->game_window, roach_payload->roaches[new_roach_id].x, roach_payload->roaches[new_roach_id].y, (roach_payload->roaches[new_roach_id].ch + '0') | A_BOLD, ROACH, new_roach_id);
