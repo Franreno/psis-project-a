@@ -132,7 +132,6 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         // Check if the lizards dropped below the maximum score
         if (new_lizard_score < MAX_LIZARD_SCORE)
         {
-
             // erase the tail just to make sure
             erase_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
             erase_lizard_tail(lizard_payload, id_2, lizard_payload->lizards[id_2].previous_direction);

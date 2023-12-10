@@ -185,7 +185,7 @@ void publish_connect(void *publisher, message_to_server recv_message, roach_move
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
-void publish_disconnect(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
+void publish_disconnect(void *publisher, message_to_server recv_message)
 {
     // Create field update message
     field_update_disconnect field_update_message;
@@ -309,7 +309,6 @@ int main(int argc, char *argv[])
     // Create pointer to eaten roaches
     roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
     int eaten_roaches_count = 0;
-    int last_cycle_eaten_roaches_count = 0;
 
     roach_payload->eaten_roaches = eaten_roaches;
     roach_payload->amount_eaten_roaches = &eaten_roaches_count;
@@ -347,7 +346,7 @@ int main(int argc, char *argv[])
         // Update the score window
         wrefresh(score_window);
 
-        recv_message.message_accepted == 1;
+        recv_message.message_accepted = 1;
 
         switch (recv_message.client_id)
         {
@@ -387,7 +386,7 @@ int main(int argc, char *argv[])
             break;
         case DISCONNECT:
             log_write("Publishing disconnect\n");
-            publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
+            publish_disconnect(publisher, recv_message);
             break;
         }
     }
