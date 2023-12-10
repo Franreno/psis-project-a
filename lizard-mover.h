@@ -1,11 +1,7 @@
 #ifndef LIZARD_MOVER_H
 #define LIZARD_MOVER_H
 
-#include <stdlib.h>
-#include <zmq.h>
 #include "util.h"
-#include "remote-char.h"
-#include "window.h"
 
 typedef struct lizard_mover
 {

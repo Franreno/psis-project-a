@@ -1,3 +1,5 @@
+#include <zmq.h>
+#include "window.h"
 #include "roach-mover.h"
 
 void new_roach_mover(roach_mover **roach_payload,

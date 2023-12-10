@@ -1,8 +1,6 @@
 #ifndef ROACH_MOVER_H
 #define ROACH_MOVER_H
 
-#include <stdlib.h>
-#include <zmq.h>
 #include "util.h"
 #include "remote-char.h"
 #include "window.h"

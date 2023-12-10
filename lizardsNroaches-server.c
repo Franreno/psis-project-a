@@ -1,19 +1,9 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <time.h>
-#include <string.h>
-#include <stdio.h>
 #include <zmq.h>
-#include <ncurses.h>
 #include "remote-char.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
 #include "logger.h"
 #include "window.h"
-#include "util.h"
 
 void print_constants()
 {
@@ -28,16 +18,8 @@ void print_constants()
     printf("MAX_LIZARD_SCORE: %d\n", MAX_LIZARD_SCORE);
 }
 
-int create_and_connect_sockets(char **rep_server_socket_address, char **pub_server_socket_address, void **context, void **responder, void **publisher)
+int create_and_connect_sockets(char *rep_server_socket_address, char *pub_server_socket_address, void **context, void **responder, void **publisher)
 {
-    printf("Using default REP server socket address: %s\n", DEFAULT_SERVER_SOCKET_ADDRESS);
-    *rep_server_socket_address = malloc(strlen(DEFAULT_SERVER_SOCKET_ADDRESS) + 1);
-    *rep_server_socket_address = DEFAULT_SERVER_SOCKET_ADDRESS;
-
-    printf("Using default PUB server socket address: %s\n", DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS);
-    *pub_server_socket_address = malloc(strlen(DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS) + 1);
-    *pub_server_socket_address = DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS;
-
     // Create context
     *context = zmq_ctx_new();
     if (*context == NULL)
@@ -66,7 +48,7 @@ int create_and_connect_sockets(char **rep_server_socket_address, char **pub_serv
     }
 
     // Bind to the REP socket
-    if (zmq_bind(*responder, *rep_server_socket_address) != 0)
+    if (zmq_bind(*responder, rep_server_socket_address) != 0)
     {
         printf("Failed to bind REP socket: %s\n", zmq_strerror(errno));
         zmq_close(*responder);
@@ -76,7 +58,7 @@ int create_and_connect_sockets(char **rep_server_socket_address, char **pub_serv
     }
 
     // Bind to the PUB socket
-    if (zmq_bind(*publisher, *pub_server_socket_address) != 0)
+    if (zmq_bind(*publisher, pub_server_socket_address) != 0)
     {
         printf("Failed to bind PUB socket: %s\n", zmq_strerror(errno));
         zmq_close(*responder);
@@ -237,7 +219,7 @@ void respawn_eaten_roaches(roach **eaten_roaches, int *amount_eaten_roaches)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     // Print the parameters the server is running with
     print_constants();
@@ -245,20 +227,49 @@ int main()
     // Initialize logger
     log_init("server.log");
 
-    char *rep_server_socket_address;
-    char *pub_server_socket_address;
     void *context;
     void *responder;
     void *publisher;
+    char *rep_server_socket_address;
+    char *pub_server_socket_address;
 
-    // Create and connect sockets for clients to connect to
-    if (create_and_connect_sockets(&rep_server_socket_address, &pub_server_socket_address, &context, &responder, &publisher) != 0)
+    printf("Usage: ./lizardsNroaches-server <rep_server_address> <rep_server_port <pub_server_address> <pub_server_port>\n");
+
+    // Check if address and port were provided as command line arguments, if not, use default values
+    if (argc != 5)
     {
-        return -1;
+        printf("Addresses and ports were not provided!\n");
+        printf("Using default REP server socket address: %s\n", DEFAULT_SERVER_SOCKET_ADDRESS);
+        rep_server_socket_address = malloc(strlen(DEFAULT_SERVER_SOCKET_ADDRESS) + 1);
+        rep_server_socket_address = DEFAULT_SERVER_SOCKET_ADDRESS;
+        printf("Using default PUB server socket address: %s\n", DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS);
+        pub_server_socket_address = malloc(strlen(DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS) + 1);
+        pub_server_socket_address = DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS;
+    }
+    else
+    {
+        printf("Using REP address and port: %s %s\n", argv[1], argv[2]);
+        char *rep_address = argv[1];
+        char *rep_port = argv[2];
+        rep_server_socket_address = malloc(strlen("tcp://") + strlen(rep_address) + strlen(":") + strlen(rep_port) + 1);
+        strcpy(rep_server_socket_address, "tcp://");
+        strcat(rep_server_socket_address, rep_address);
+        strcat(rep_server_socket_address, ":");
+        strcat(rep_server_socket_address, rep_port);
+
+        printf("Using PUB address and port: %s %s\n", argv[3], argv[4]);
+        char *pub_address = argv[3];
+        char *pub_port = argv[4];
+        pub_server_socket_address = malloc(strlen("tcp://") + strlen(pub_address) + strlen(":") + strlen(pub_port) + 1);
+        strcpy(pub_server_socket_address, "tcp://");
+        strcat(pub_server_socket_address, rep_address);
+        strcat(pub_server_socket_address, ":");
+        strcat(pub_server_socket_address, rep_port);
     }
 
-    // Seed random number generator
-    srand(time(NULL));
+    // Create and connect sockets for clients to connect to
+    if (create_and_connect_sockets(rep_server_socket_address, pub_server_socket_address, &context, &responder, &publisher) != 0)
+        return -1;
 
     // Initialize ncurses
     initscr();
