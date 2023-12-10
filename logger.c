@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdarg.h>
 #include "logger.h"
 
 static FILE *log_file = NULL;

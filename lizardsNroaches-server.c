@@ -1,19 +1,9 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <time.h>
-#include <string.h>
-#include <stdio.h>
 #include <zmq.h>
-#include <ncurses.h>
 #include "remote-char.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
 #include "logger.h"
 #include "window.h"
-#include "util.h"
 
 void print_constants()
 {
@@ -266,9 +256,6 @@ int main(int argc, char *argv[])
     // Create and connect sockets for clients to connect to
     if (create_and_connect_sockets(rep_server_socket_address, pub_server_socket_address, &context, &responder, &publisher) != 0)
         return -1;
-
-    // Seed random number generator
-    srand(time(NULL));
 
     // Initialize ncurses
     initscr();

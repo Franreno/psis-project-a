@@ -1,3 +1,5 @@
+#include <zmq.h>
+#include "window.h"
 #include "lizard-mover.h"
 
 void new_lizard_mover(lizard_mover **lizard_payload,

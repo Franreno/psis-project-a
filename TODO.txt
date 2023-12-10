@@ -2,15 +2,17 @@ Mudar o nome de "Display-app" para "display-app" para os nomes dos ficheiros ser
 
 Mudar o nome de "remote-char.h# para outro nome mais indicativo do que o ".h" serve?
 
+Verificar se não há ficheiros que se possam apagar, simplficiar numero de ficheiros
+
+Verificar se todos os .h estão actualizados
+
+Verificar todos os #includes, tirar os desnecessários, por nos ficheiros corretos, etc
+
 Corrigir o DEFAULT_SERVER_ADDRESS, não percebo bem porque é que o tcp não funciona para os clients
 
 Não sei se as dimensões do mapa são necessáriamente simétricas!
 
 Para aumentar segurança de comunicação, os clients podem usar hash para comunicar em vez de id dos arrays
-
-Spawns devem ser random mas só em lugares vazios
-
-A display app também devem receber como possíveis argumentos as portas e sockets a usar - copiar da implementação do server or dos lizards
 
 
 GAME RULES:
