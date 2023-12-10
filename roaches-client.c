@@ -8,36 +8,13 @@
 
 volatile sig_atomic_t stop = 0;
 
-void handle_sigint(int sig)
+void handle_sigint()
 {
     stop = 1;
 }
 
-int create_and_connect_socket(int argc, char *argv[], char **server_socket_address, void **context, void **requester)
+int create_and_connect_socket(char *server_socket_address, void **context, void **requester)
 {
-    // Check if address and port were provided as command line arguments, if not, use default values
-    if (argc != 3)
-    {
-        printf("No address and port provided!\n");
-        printf("Using default server socket address: %s\n", DEFAULT_SERVER_SOCKET_ADDRESS);
-        *server_socket_address = malloc(strlen(DEFAULT_SERVER_SOCKET_ADDRESS) + 1);
-        *server_socket_address = DEFAULT_SERVER_SOCKET_ADDRESS; // WORKAROUND, for some reason, the server doesn't work with tcp
-    }
-    // Create socket address using address and port provided
-    else
-    {
-        printf("Using address and port: %s %s\n", argv[1], argv[2]);
-        char *address = argv[1];
-        char *port = argv[2];
-        *server_socket_address = malloc(strlen("tcp://") + strlen(address) + strlen(":") + strlen(port) + 1);
-        strcpy(*server_socket_address, "tcp://");
-        strcat(*server_socket_address, address);
-        strcat(*server_socket_address, ":");
-        strcat(*server_socket_address, port);
-    }
-
-    printf("Connecting to server at %s\n", *server_socket_address);
-
     // Create context
     *context = zmq_ctx_new();
     if (*context == NULL)
@@ -56,7 +33,7 @@ int create_and_connect_socket(int argc, char *argv[], char **server_socket_addre
     }
 
     // Connect to the server using ZMQ_REQ
-    if (zmq_connect(*requester, *server_socket_address) != 0)
+    if (zmq_connect(*requester, server_socket_address) != 0)
     {
         printf("Failed to connect: %s\n", zmq_strerror(errno));
         zmq_close(*requester);
@@ -178,26 +155,60 @@ int main(int argc, char *argv[])
 {
     signal(SIGINT, handle_sigint);
 
-    char *server_socket_address;
+    int num_roaches;
     void *context;
     void *requester;
-
-    if (create_and_connect_socket(argc, argv, &server_socket_address, &context, &requester) != 0)
-    {
-        return -1;
-    }
-
-    message_to_server send_message;
+    char *server_socket_address;
+    int *roaches;
 
     // Seed random number generator
     srand(time(NULL));
 
-    // Randomly select the number of roaches to attempt to generate
-    int num_roaches = rand() % MAX_ROACHES_GENERATED + 1;
-    printf("Number of roaches to attempt to generate: %d\n", num_roaches);
+    printf("Usage: ./roaches-client <num_roaches> <server_address> <server_port>\n");
+    printf("Number of roaches must be between 1 and %d\n", MAX_ROACHES_GENERATED);
+
+    // Check if number of roaches was provided as command line argument, if not, use random number
+    if (argc < 2 || atoi(argv[1]) < 1 || atoi(argv[1]) > MAX_ROACHES_GENERATED)
+    {
+        printf("No number of roaches provided or value is invalid!\n");
+        num_roaches = rand() % MAX_ROACHES_GENERATED + 1;
+        printf("Using random number of roaches: %d\n", num_roaches);
+    }
+    else
+    {
+        num_roaches = atoi(argv[1]);
+        printf("Using provided number of roaches: %d\n", num_roaches);
+    }
+
+    // Check if address and port were provided as command line arguments, if not, use default values
+    if (argc != 4)
+    {
+        printf("No address and port provided!\n");
+        printf("Using default server socket address: %s\n", DEFAULT_SERVER_SOCKET_ADDRESS);
+        server_socket_address = malloc(strlen(DEFAULT_SERVER_SOCKET_ADDRESS) + 1);
+        server_socket_address = DEFAULT_SERVER_SOCKET_ADDRESS;
+    }
+    else
+    {
+        printf("Using address and port: %s %s\n", argv[2], argv[3]);
+        char *address = argv[2];
+        char *port = argv[3];
+        server_socket_address = malloc(strlen("tcp://") + strlen(address) + strlen(":") + strlen(port) + 1);
+        strcpy(server_socket_address, "tcp://");
+        strcat(server_socket_address, address);
+        strcat(server_socket_address, ":");
+        strcat(server_socket_address, port);
+    }
+
+    printf("Connecting to server at %s\n", server_socket_address);
+
+    if (create_and_connect_socket(server_socket_address, &context, &requester) != 0)
+        return -1;
+
+    message_to_server send_message;
 
     // Create an array of roaches and connect them to the server
-    int *roaches = malloc(sizeof(int) * num_roaches);
+    roaches = malloc(sizeof(int) * num_roaches);
     generate_and_connect_roaches(num_roaches, roaches, requester, &send_message);
 
     // Handle roaches movement until SIGINT is received (Ctrl+C)
@@ -206,7 +217,7 @@ int main(int argc, char *argv[])
     // Disconnect roaches from server
     disconnect_roaches(num_roaches, roaches, requester, &send_message);
 
-    // Close socket and destroy context
+    // Close socket and destroy context and free memory
     zmq_close(requester);
     zmq_ctx_destroy(context);
 

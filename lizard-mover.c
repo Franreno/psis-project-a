@@ -18,38 +18,18 @@ void new_lizard_mover(lizard_mover **lizard_payload,
 
 void process_lizard_connect(lizard_mover *lizard_payload)
 {
-    int server_reply = 0;
-    char new_lizard_char;
     int new_lizard_id;
 
     // If there are not available slots, refuse to add lizard
     if (*(lizard_payload->slot_lizards) <= 0)
     {
-        server_reply = -1;
-        // Reply indicating failure adding the lizard due to lack of slots
+        new_lizard_id = -1;
         if (lizard_payload->should_use_responder)
         {
-            zmq_send(lizard_payload->responder, &server_reply, sizeof(int), 0);
+            zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0);
         }
 
         return;
-    }
-
-    // Get the character of the new lizard
-    new_lizard_char = lizard_payload->recv_message->value;
-
-    // If there is already a lizard with chosen character, refuse to add lizard
-    for (int i = 0; i < *(lizard_payload->num_lizards); i++)
-    {
-        server_reply = -2;
-        if (lizard_payload->lizards[i].ch == new_lizard_char)
-        {
-            // Reply indicating failure adding the lizard due to choice of repeated character
-            if (lizard_payload->should_use_responder)
-                zmq_send(lizard_payload->responder, &server_reply, sizeof(int), 0);
-
-            return;
-        }
     }
 
     // If there is an empty slot, add the lizard to the array on that slot, if not, add after the last lizard
@@ -69,7 +49,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     (*(lizard_payload->slot_lizards))--;
 
     // Initialize the lizard in a valid random position and with score 0
-    lizard_payload->lizards[new_lizard_id].ch = (char)lizard_payload->recv_message->value;
+    lizard_payload->lizards[new_lizard_id].ch = 'A' + new_lizard_id;
     lizard_payload->lizards[new_lizard_id].x = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
     lizard_payload->lizards[new_lizard_id].y = rand() % (WINDOW_SIZE - 2) + 1; // TODO - CHECK IF POSITION IS VALID
     lizard_payload->lizards[new_lizard_id].previous_direction = rand() % 4;

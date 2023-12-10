@@ -2,21 +2,18 @@ Mudar o nome de "Display-app" para "display-app" para os nomes dos ficheiros ser
 
 Mudar o nome de "remote-char.h# para outro nome mais indicativo do que o ".h" serve?
 
-Corrigir o DEFAULT_SERVER_ADDRESS para funcionar sem workaround
-
-Server pode apresentar a board usando também a Display-app
-
-The lizardsNroaches-server and Display-app should also display the game status, i.e. the scores of all lizards.
+Corrigir o DEFAULT_SERVER_ADDRESS, não percebo bem porque é que o tcp não funciona para os clients
 
 Não sei se as dimensões do mapa são necessáriamente simétricas!
 
 Para aumentar segurança de comunicação, os clients podem usar hash para comunicar em vez de id dos arrays
 
-Aplicar a correção do bug disconnect seguido de connect no caso das roaches
-
 Spawns devem ser random mas só em lugares vazios
 
-RULES:
+A display app também devem receber como possíveis argumentos as portas e sockets a usar - copiar da implementação do server or dos lizards
+
+
+GAME RULES:
 
 -> DONE - When a lizard rams another one on the head, both lizards score is equalized to the average of their respective scores
 
