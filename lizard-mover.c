@@ -53,7 +53,9 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     // Initialize the lizard
     lizard_payload->lizards[new_lizard_id].ch = 'A' + new_lizard_id;
     lizard_payload->lizards[new_lizard_id].previous_direction = rand() % 4;
-    lizard_payload->lizards[new_lizard_id].score = 0;
+    lizard_payload->recv_message->direction = lizard_payload->lizards[new_lizard_id].previous_direction;
+    lizard_payload->lizards[new_lizard_id]
+        .score = 0;
 
     int new_x;
     int new_y;
@@ -88,22 +90,30 @@ void process_lizard_connect(lizard_mover *lizard_payload)
 
 void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connected_lizard, int received_id)
 {
-    // Inject means it was received from the server, if received
-    // from the server, we don't need to reply, and don't need to check for slots
+    // printf("Received lizard with id %d\n", received_id);
+    //  Inject means it was received from the server, if received
+    //  from the server, we don't need to reply, and don't need to check for slots
 
     // Increment the number of lizards and decrement the available slots
     (*(lizard_payload->num_lizards))++;
     (*(lizard_payload->slot_lizards))--;
+    // printf("Num lizards: %d\n", *(lizard_payload->num_lizards));
+    // printf("Slot lizards: %d\n", *(lizard_payload->slot_lizards));
 
     // Initialize the lizard in a received position
     lizard_payload->lizards[received_id] = connected_lizard;
+    // printf("Lizard char: %c\n", lizard_payload->lizards[received_id].ch);
+    // printf("Lizard previous direction: %d\n", lizard_payload->lizards[received_id].previous_direction);
 
     // Draw the lizard in the received position
+    // printf("Drawing lizard\n");
     lizard_draw(lizard_payload, received_id);
+    // printf("Lizard drawn\n");
 }
 
 int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new_y)
 {
+
     // Get the lizzard id and direction
     int lizard_id = lizard_payload->recv_message->value;
     direction_t direction = lizard_payload->recv_message->direction;
@@ -117,8 +127,14 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
     layer_cell *cell = get_cell(lizard_payload->game_window->matrix, *new_x, *new_y);
 
     // Check the top element of the stack to see if it's a lizard
+    if (cell->top == -1)
+    {
+        return 1;
+    }
+
     if (cell->stack[cell->top].client_id == LIZARD)
     {
+
         int id_1 = lizard_id;
         int id_2 = cell->stack[cell->top].position_in_array;
 
@@ -151,6 +167,8 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
     // Check the top element of the stack to see if it's a roach
     if (cell->stack[cell->top].client_id == ROACH)
     {
+        // printf("Top element is a roach\n");
+
         char *roaches = (char *)malloc(sizeof(char) * cell->capacity);
         int *roaches_positions = (int *)malloc(sizeof(int) * cell->capacity);
         int num_roaches = 0;
@@ -165,6 +183,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
                 roaches[num_roaches] = cell->stack[i].ch;
                 roaches_positions[num_roaches] = cell->stack[i].position_in_array;
                 num_roaches++;
+                // printf("Roach found: %c at position %d\n", roaches[num_roaches - 1], roaches_positions[num_roaches - 1]);
             }
         }
 
@@ -184,6 +203,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
 
             // Increase the lizard score
             new_lizard_score += roaches[i] - '0';
+            // printf("Eating roach at position %d, new score: %d\n", roaches_positions[i], new_lizard_score);
         }
 
         // Update the lizard score
@@ -210,23 +230,34 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
 
 void draw_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t tail_direction)
 {
+    // printf("Drawing lizard tail\n");
     lizard *lizard = &lizard_payload->lizards[lizard_id];
+    // printf("Lizard id: %d\n", lizard_id);
     char char_to_draw = lizard->is_winner ? '*' : '.';
+    // printf("Char to draw: %c\n", char_to_draw);
 
     // Draw the lizard tail
     int tail_x = lizard->x;
     int tail_y = lizard->y;
     char overflow = 0;
+    // printf("Tail x: %d\n", tail_x);
+    // printf("Tail y: %d\n", tail_y);
 
     for (int i = 0; i < 5; i++)
     {
-        // Calculate the new position and check if it's valid
+        // printf("Drawing tail iteration %d\n", i);
+        //  Calculate the new position and check if it's valid
         tail_position_calc(&tail_x, &tail_y, tail_direction, &overflow);
         if (overflow)
             break;
 
+        // printf("Tail x: %d\n", tail_x);
+        // printf("Tail y: %d\n", tail_y);
+
         // Draw the tail
+        // printf("Drawing tail\n");
         window_draw(lizard_payload->game_window, tail_x, tail_y, char_to_draw, LIZARD_BODY, lizard_id);
+        // printf("Tail drawn\n");
     }
 }
 
@@ -261,9 +292,12 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     // If the lizard movement is calculated as valid, move the lizard
     if (calculate_lizard_movement(lizard_payload, &new_x, &new_y))
     {
+        lizard_payload->recv_message->message_accepted = 1;
         lizard_move(lizard_payload, lizard_id, new_x, new_y);
-        // Update the previous direction
-        lizard_payload->lizards[lizard_id].previous_direction = lizard_payload->recv_message->direction;
+    }
+    else
+    {
+        lizard_payload->recv_message->message_accepted = 0;
     }
 
     // Reply with the lizard score
@@ -289,6 +323,7 @@ void lizard_move(lizard_mover *lizard_payload, int lizard_id, int new_x, int new
 {
     lizard_erase(lizard_payload, lizard_id);
 
+    lizard_payload->lizards[lizard_id].previous_direction = lizard_payload->recv_message->direction;
     // Update the lizard position
     lizard_payload->lizards[lizard_id].x = new_x;
     lizard_payload->lizards[lizard_id].y = new_y;
@@ -342,7 +377,7 @@ void serialize_lizard_mover(lizard_mover *lizard_payload, char **buffer, size_t 
     *buffer_size = sizeof(int) * 2; // num_lizards and slot_lizards
 
     int num_lizards = *(lizard_payload->num_lizards);
-    *buffer_size += (sizeof(char) + 4 * sizeof(int)) * num_lizards; // Each lizard
+    *buffer_size += (sizeof(char) + 3 * sizeof(int) + sizeof(direction_t)) * num_lizards; // Each lizard
 
     *buffer = malloc(*buffer_size);
     if (!*buffer)
@@ -369,7 +404,7 @@ void serialize_lizard_mover(lizard_mover *lizard_payload, char **buffer, size_t 
         ptr += sizeof(int);
         memcpy(ptr, &(lizard_payload->lizards[i].score), sizeof(int));
         ptr += sizeof(int);
-        memcpy(ptr, &(lizard_payload->lizards[i].previous_direction), sizeof(int));
+        memcpy(ptr, &(lizard_payload->lizards[i].previous_direction), sizeof(direction_t));
         ptr += sizeof(int);
     }
 }
@@ -419,7 +454,7 @@ void deserialize_lizard_mover(lizard_mover *lizard_payload, char *buffer)
         ptr += sizeof(int);
         memcpy(&(lizard_payload->lizards[i].score), ptr, sizeof(int));
         ptr += sizeof(int);
-        memcpy(&(lizard_payload->lizards[i].previous_direction), ptr, sizeof(int));
+        memcpy(&(lizard_payload->lizards[i].previous_direction), ptr, sizeof(direction_t));
         ptr += sizeof(int);
     }
 }

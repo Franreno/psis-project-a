@@ -132,13 +132,24 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
     free(serialized_lizard_mover);
 }
 
-void publish_movement(void *publisher, message_to_server recv_message)
+void publish_movement(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
     // Create field update message
     field_update_movement field_update_message;
     field_update_message.message = recv_message;
-    field_update_message.num_roaches = 10;
-    field_update_message.num_lizards = 10;
+    switch (recv_message.client_id)
+    {
+    case LIZARD:
+        field_update_message.new_x = lizard_payload->lizards[recv_message.value].x;
+        field_update_message.new_y = lizard_payload->lizards[recv_message.value].y;
+        field_update_message.prev_direction = lizard_payload->lizards[recv_message.value].previous_direction;
+        break;
+    case ROACH:
+        field_update_message.new_x = roach_payload->roaches[recv_message.value].x;
+        field_update_message.new_y = roach_payload->roaches[recv_message.value].y;
+        field_update_message.is_eaten = roach_payload->roaches[recv_message.value].is_eaten;
+        break;
+    }
 
     zmq_send(publisher, "field_update_movement", strlen("field_update_movement"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
@@ -174,7 +185,7 @@ void publish_connect(void *publisher, message_to_server recv_message, roach_move
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
-void publish_disconnect(void *publisher, message_to_server recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
+void publish_disconnect(void *publisher, message_to_server recv_message)
 {
     // Create field update message
     field_update_disconnect field_update_message;
@@ -324,7 +335,7 @@ int main(int argc, char *argv[])
         zmq_recv(responder, &recv_message, sizeof(message_to_server), 0);
         log_write("Received message from client %d\n", recv_message.client_id);
 
-        respawn_eaten_roaches(roach_payload ,eaten_roaches, &eaten_roaches_count);
+        respawn_eaten_roaches(roach_payload, eaten_roaches, &eaten_roaches_count);
 
         // Print the scores in the score window
         int i, j;
@@ -351,44 +362,48 @@ int main(int argc, char *argv[])
         // Update the score window
         wrefresh(score_window);
 
+        recv_message.message_accepted = 1;
+
         switch (recv_message.client_id)
         {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_message(lizard_payload);
-                log_write("Processed lizard message\n");
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                process_roach_message(roach_payload);
-                break;
-            case DISPLAY_APP:
-                log_write("Processing display app message\n");
-                process_display_app_message(responder, game_window, roach_payload, lizard_payload);
-                log_write("Processed display app message\n");
-                break;
-            default:
-                break;
+        case LIZARD:
+            log_write("Processing lizard message\n");
+            process_lizard_message(lizard_payload);
+            log_write("Processed lizard message\n");
+            break;
+        case ROACH:
+            log_write("Processing roach message\n");
+            process_roach_message(roach_payload);
+            break;
+        case DISPLAY_APP:
+            log_write("Processing display app message\n");
+            process_display_app_message(responder, game_window, roach_payload, lizard_payload);
+            log_write("Processed display app message\n");
+            break;
+        default:
+            break;
         }
 
-        if (recv_message.client_id == DISPLAY_APP)
+        respawn_eaten_roaches(roach_payload, eaten_roaches, &eaten_roaches_count);
+
+        if (recv_message.client_id == DISPLAY_APP || recv_message.message_accepted == 0)
             continue;
 
         // Publish the message to the display app
         switch (recv_message.type)
         {
-            case CONNECT:
-                log_write("Publishing connect\n");
-                publish_connect(publisher, recv_message, roach_payload, lizard_payload);
-                break;
-            case MOVEMENT:
-                log_write("Publishing movement\n");
-                publish_movement(publisher, recv_message);
-                break;
-            case DISCONNECT:
-                log_write("Publishing disconnect\n");
-                publish_disconnect(publisher, recv_message, roach_payload, lizard_payload);
-                break;
+        case CONNECT:
+            log_write("Publishing connect\n");
+            publish_connect(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        case MOVEMENT:
+            log_write("Publishing movement\n");
+            publish_movement(publisher, recv_message, roach_payload, lizard_payload);
+            break;
+        case DISCONNECT:
+            log_write("Publishing disconnect\n");
+            publish_disconnect(publisher, recv_message);
+            break;
         }
     }
 
