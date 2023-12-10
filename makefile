@@ -52,4 +52,8 @@ $(DISPLAY_APP_DIR)/%.o: $(DISPLAY_APP_DIR)/%.c
 clean:
 	rm -f $(SHARED_DIR)/*.o $(OUTPUT_DIR)/* $(SERVER_DIR)/*.o $(LIZARD_CLIENT_DIR)/*.o $(ROACHES_CLIENT_DIR)/*.o $(DISPLAY_APP_DIR)/*.o
 
-.PHONY: all clean
+zip:
+	zip -r project.zip . -x "*.zip"
+
+.PHONY: all clean zip
+
