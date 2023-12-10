@@ -186,7 +186,7 @@ void publish_disconnect(void *publisher, message_to_server recv_message, roach_m
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
-void respawn_eaten_roaches(roach **eaten_roaches, int *amount_eaten_roaches)
+void respawn_eaten_roaches(roach_mover *roach_payload, roach **eaten_roaches, int *amount_eaten_roaches)
 {
     time_t current_time = time(NULL);
 
@@ -197,9 +197,23 @@ void respawn_eaten_roaches(roach **eaten_roaches, int *amount_eaten_roaches)
 
         if (eaten_roach->is_eaten && difftime(current_time, eaten_roach->timestamp) >= 5)
         {
+            int new_x;
+            int new_y;
+            layer_cell *cell;
+
+            do
+            {
+                // Generate a random position
+                new_x = rand() % (WINDOW_SIZE - 2) + 1;
+                new_y = rand() % (WINDOW_SIZE - 2) + 1;
+
+                // Get the stack info of the new position
+                cell = get_cell(roach_payload->game_window->matrix, new_x, new_y);
+            } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH);
+
+            eaten_roach->x = new_x;
+            eaten_roach->y = new_y;
             eaten_roach->is_eaten = 0;
-            eaten_roach->x = rand() % (WINDOW_SIZE - 2) + 1;
-            eaten_roach->y = rand() % (WINDOW_SIZE - 2) + 1;
             eaten_roach->timestamp = 0;
         }
     }
@@ -310,7 +324,7 @@ int main(int argc, char *argv[])
         zmq_recv(responder, &recv_message, sizeof(message_to_server), 0);
         log_write("Received message from client %d\n", recv_message.client_id);
 
-        respawn_eaten_roaches(eaten_roaches, &eaten_roaches_count);
+        respawn_eaten_roaches(roach_payload ,eaten_roaches, &eaten_roaches_count);
 
         // Print the scores in the score window
         int i, j;

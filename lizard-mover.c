@@ -76,7 +76,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     // Draw the lizard in the random position
     window_draw(lizard_payload->game_window, lizard_payload->lizards[new_lizard_id].x, lizard_payload->lizards[new_lizard_id].y, (lizard_payload->lizards[new_lizard_id].ch) | A_BOLD, LIZARD, new_lizard_id);
 
-    // TODO - DRAW LIZARDS TAIL
+    // Draw the tail
     draw_lizard_tail(lizard_payload, new_lizard_id, lizard_payload->lizards[new_lizard_id].previous_direction);
 
     // Reply to lizard client indicating position of the new lizard in the array
