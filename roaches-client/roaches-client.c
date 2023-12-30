@@ -1,4 +1,6 @@
+#include <protobuf-c/protobuf-c.h>
 #include "default_consts.h"
+#include "server_messages.pb-c.h"
 
 volatile sig_atomic_t stop = 0;
 
@@ -58,26 +60,33 @@ int create_and_connect_socket(char *server_socket_address, void **context, void 
  * @param send_message - Message to send to the server
  * @return int - 0 if successful, -1 otherwise
  */
-int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester, message_to_server *send_message)
+
+int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester)
 {
-    int server_reply;
-    int roach_id;
+    MessageToServer send_message = MESSAGE_TO_SERVER__INIT;
+    void *buf;    // Buffer to hold serialized data
+    unsigned len; // Length of serialized data
 
-    send_message->client_id = ROACH;
-    send_message->type = CONNECT;
+    send_message.client_id = CLIENT_TYPE__ROACH;
+    send_message.type = MESSAGE_TYPE__CONNECT;
 
-    // For each roach, send a connect message to the server and wait for a response
     for (int i = 0; i < num_roaches; i++)
     {
-        // Generate a random score for the roach
         roaches[i] = rand() % MAX_ROACH_SCORE + 1;
-        send_message->value = roaches[i];
+        send_message.value = roaches[i];
 
-        // Send message to server connecting a roach
-        zmq_send(requester, send_message, sizeof(message_to_server), 0);
+        // Serialize the message
+        len = message_to_server__get_packed_size(&send_message);
+        buf = malloc(len);
+        message_to_server__pack(&send_message, buf);
+
+        // Send the serialized message
+        zmq_send(requester, buf, len, 0);
         printf("Attempting to connect roach with score: %d\n", roaches[i]);
+        free(buf); // Free the buffer after sending
 
-        // Server replies with either failure or the assigned roach id
+        // Receive the server's reply
+        int server_reply;
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply == -1)
         {
@@ -86,8 +95,7 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
             return -1;
         }
 
-        // If the server replies with a roach id, store the id in the roaches array, replacing it's score
-        roach_id = server_reply;
+        int roach_id = server_reply;
         roaches[i] = roach_id;
         printf("Roach connected with id: %d\n", roach_id);
     }
@@ -242,7 +250,7 @@ int main(int argc, char *argv[])
 
     // Create an array of roaches and connect them to the server
     roaches = malloc(sizeof(int) * num_roaches);
-    generate_and_connect_roaches(num_roaches, roaches, requester, &send_message);
+    generate_and_connect_roaches(num_roaches, roaches, requester);
 
     // Handle roaches movement until SIGINT is received (Ctrl+C)
     move_roaches(num_roaches, roaches, requester, &send_message, &stop);

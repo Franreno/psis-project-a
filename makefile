@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -I./headers -I./shared
+CFLAGS = -Wall -Wextra -pedantic -I./headers -I./shared -I./proto/compiled
 LDFLAGS = -lncurses -lzmq -lprotobuf-c
 
 SHARED_DIR = ./shared
@@ -66,7 +66,7 @@ $(DISPLAY_APP_DIR)/%.o: $(DISPLAY_APP_DIR)/%.c
 
 # Clean up all the ".o" files, executables in the output directory, and protobuf generated files
 clean:
-	rm -f $(SHARED_DIR)/*.o $(OUTPUT_DIR)/* $(SERVER_DIR)/*.o $(LIZARD_CLIENT_DIR)/*.o $(ROACHES_CLIENT_DIR)/*.o $(DISPLAY_APP_DIR)/*.o $(PROTO_COMPILED_DIR)/*.pb-c.c $(PROTO_COMPILED_DIR)/*.pb-c.h $(PROTO_COMPILED_DIR)/*.pb-c.o
+	rm -f $(SHARED_DIR)/*.o $(OUTPUT_DIR)/* $(SERVER_DIR)/*.o $(LIZARD_CLIENT_DIR)/*.o $(ROACHES_CLIENT_DIR)/*.o $(DISPLAY_APP_DIR)/*.o $(PROTO_COMPILED_DIR)/*.pb-c.o
 
 zip:
 	zip -r project.zip . -x "*.zip"
