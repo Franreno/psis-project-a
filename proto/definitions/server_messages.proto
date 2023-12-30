@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+
+enum Direction {
+    UP = 0;
+    DOWN = 1;
+    LEFT = 2;
+    RIGHT = 3;
+}
+
+enum MessageType {
+    CONNECT = 0;
+    MOVEMENT = 1;
+    DISCONNECT = 2;
+}
+
+enum ClientType {
+    LIZARD = 0;
+    ROACH = 1;
+    DISPLAY_APP = 2;
+    LIZARD_BODY = 3;
+}
+
+// Message structure
+message MessageToServer {
+    int32 client_id = 1;          // 1 = lizard, 2 = roach, 3 = display-app
+    MessageType type = 2;         // 1 = connect, 2 = movement
+    int32 value = 3;              // usage depends on client_id and type
+    Direction direction = 4;      // direction to move the roach
+    bool message_accepted = 5;    // true = message accepted, false = message rejected
+}
+
+// New structures
+message Lizard {
+    string ch = 1;
+    int32 x = 2;
+    int32 y = 3;
+    int32 score = 4;
+    Direction previous_direction = 5;
+    bool is_winner = 6;                // True if winner, False otherwise
+}
+
+message Roach {
+    string ch = 1;   
+    int32 x = 2;
+    int32 y = 3;
+    bool is_eaten = 4;
+    int64 timestamp = 5;
+}
+
+message Wasp {
+    string ch = 1;
+    int32 x = 2;
+    int32 y = 3;
+}
+
+message FieldUpdateMovement {
+    int32 num_roaches = 1;
+    int32 num_lizards = 2;
+    MessageToServer message = 3;
+    int32 new_x = 4;
+    int32 new_y = 5;
+    Direction prev_direction = 6;
+    bool is_eaten = 7;
+}
+
+message FieldUpdateConnect {
+    int32 client_id = 1;
+    int32 position_in_array = 2;
+    Lizard connected_lizard = 3;
+    Roach connected_roach = 4;
+    MessageToServer message = 5;
+}
+
+message FieldUpdateDisconnect {
+    int32 client_id = 1;
+    int32 position_in_array = 2;
+    MessageToServer message = 3;
+}
+
+message RoachMoverMessage {
+    repeated Roach roaches = 1;         // Array of Roach
+    int32 num_roaches = 2;              // Number of roaches
+    int32 slot_roaches = 3;             // Slot roaches
+}
+
+message LizardMoverMessage {
+    repeated Lizard lizards = 1;         // Array of lizards
+    int32 num_lizards = 2;              // Number of lizards
+    int32 slot_lizards = 3;             // Slot lizards
+}
+
+message WaspMoverMessage {
+    repeated Wasp wasps = 1;         // Array of Wasp
+    int32 num_wasps = 2;              // Number of wasps
+    int32 slot_wasps = 3;             // Slot roaches
+}
