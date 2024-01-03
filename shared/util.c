@@ -73,3 +73,55 @@ void tail_position_calc(int *x, int *y, direction_t direction, char *overflow)
         break;
     }
 }
+
+Direction convert_direction_to_protobuf_direction_enum(direction_t direction)
+{
+    switch (direction)
+    {
+    case UP:
+        return DIRECTION__UP;
+    case DOWN:
+        return DIRECTION__DOWN;
+    case LEFT:
+        return DIRECTION__LEFT;
+    case RIGHT:
+        return DIRECTION__RIGHT;
+    }
+
+    return DIRECTION__UP;
+}
+
+direction_t convert_protobuf_direction_enum_to_direction_t(Direction direction)
+{
+    switch (direction)
+    {
+    case DIRECTION__UP:
+        return UP;
+    case DIRECTION__DOWN:
+        return DOWN;
+    case DIRECTION__LEFT:
+        return LEFT;
+    case DIRECTION__RIGHT:
+        return RIGHT;
+    }
+
+    return UP;
+}
+
+void convert_proto_message_to_server_to_message_to_server(message_to_server *new_msg, MessageToServer *msg)
+{
+    new_msg->client_id = msg->client_id;
+    new_msg->type = msg->type;
+    new_msg->value = msg->value;
+    new_msg->direction = convert_protobuf_direction_enum_to_direction_t(msg->direction);
+    new_msg->message_accepted = msg->message_accepted;
+}
+
+void convert_message_to_server_to_proto_message_to_server(MessageToServer *new_msg, message_to_server *msg)
+{
+    new_msg->client_id = msg->client_id;
+    new_msg->type = msg->type;
+    new_msg->value = msg->value;
+    new_msg->direction = convert_direction_to_protobuf_direction_enum(msg->direction);
+    new_msg->message_accepted = msg->message_accepted;
+}

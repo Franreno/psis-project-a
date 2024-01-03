@@ -553,11 +553,11 @@ static const ProtobufCFieldDescriptor lizard__field_descriptors[6] =
     "ch",
     1,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_STRING,
+    PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
     offsetof(Lizard, ch),
     NULL,
-    &protobuf_c_empty_string,
+    NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
@@ -656,11 +656,11 @@ static const ProtobufCFieldDescriptor roach__field_descriptors[5] =
     "ch",
     1,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_STRING,
+    PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
     offsetof(Roach, ch),
     NULL,
-    &protobuf_c_empty_string,
+    NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
@@ -746,11 +746,11 @@ static const ProtobufCFieldDescriptor wasp__field_descriptors[3] =
     "ch",
     1,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_STRING,
+    PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
     offsetof(Wasp, ch),
     NULL,
-    &protobuf_c_empty_string,
+    NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },

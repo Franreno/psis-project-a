@@ -90,7 +90,7 @@ struct  _MessageToServer
 struct  _Lizard
 {
   ProtobufCMessage base;
-  char *ch;
+  int32_t ch;
   int32_t x;
   int32_t y;
   int32_t score;
@@ -102,13 +102,13 @@ struct  _Lizard
 };
 #define LIZARD__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&lizard__descriptor) \
-    , (char *)protobuf_c_empty_string, 0, 0, 0, DIRECTION__UP, 0 }
+    , 0, 0, 0, 0, DIRECTION__UP, 0 }
 
 
 struct  _Roach
 {
   ProtobufCMessage base;
-  char *ch;
+  int32_t ch;
   int32_t x;
   int32_t y;
   protobuf_c_boolean is_eaten;
@@ -116,19 +116,19 @@ struct  _Roach
 };
 #define ROACH__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&roach__descriptor) \
-    , (char *)protobuf_c_empty_string, 0, 0, 0, 0 }
+    , 0, 0, 0, 0, 0 }
 
 
 struct  _Wasp
 {
   ProtobufCMessage base;
-  char *ch;
+  int32_t ch;
   int32_t x;
   int32_t y;
 };
 #define WASP__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&wasp__descriptor) \
-    , (char *)protobuf_c_empty_string, 0, 0 }
+    , 0, 0, 0 }
 
 
 struct  _FieldUpdateMovement

@@ -4,6 +4,7 @@
 #include "util.h"
 #include "default_consts.h"
 #include "window.h"
+#include "server_messages.pb-c.h"
 
 typedef struct roach_mover
 {

@@ -163,17 +163,20 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
  * @param roach_payload- Roach mover
  * @param lizard_payload- Lizard mover
  */
-void publish_movement(void *publisher, MessageToServer *recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
+void publish_movement(void *publisher, message_to_server *recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
     // Create field update message
     FieldUpdateMovement field_update_message = FIELD_UPDATE_MOVEMENT__INIT;
-    field_update_message.message = recv_message;
+    MessageToServer message_to_server_proto = MESSAGE_TO_SERVER__INIT;
+    // Convert recv message from message to proto
+    convert_message_to_server_to_proto_message_to_server(&message_to_server_proto, recv_message);
+    field_update_message.message = &message_to_server_proto;
     switch (recv_message->client_id)
     {
     case LIZARD:
         field_update_message.new_x = lizard_payload->lizards[recv_message->value].x;
         field_update_message.new_y = lizard_payload->lizards[recv_message->value].y;
-        field_update_message.prev_direction = lizard_payload->lizards[recv_message->value].previous_direction;
+        field_update_message.prev_direction = convert_direction_to_protobuf_direction_enum(lizard_payload->lizards[recv_message->value].previous_direction);
         break;
     case ROACH:
         field_update_message.new_x = roach_payload->roaches[recv_message->value].x;
@@ -203,11 +206,11 @@ void populate_lizard(Lizard **_lizard, lizard __lizard)
     lizard__init(*_lizard);            // Initialize the Lizard object
 
     // Populate the Lizard fields
-    (*_lizard)->ch = __lizard.ch; // Duplicate the string to avoid pointer issues
+    (*_lizard)->ch = (int)__lizard.ch;
     (*_lizard)->x = __lizard.x;
     (*_lizard)->y = __lizard.y;
     (*_lizard)->score = __lizard.score;
-    (*_lizard)->previous_direction = __lizard.previous_direction;
+    (*_lizard)->previous_direction = convert_direction_to_protobuf_direction_enum(__lizard.previous_direction);
     (*_lizard)->is_winner = __lizard.is_winner;
 }
 
@@ -232,7 +235,7 @@ void populate_roach(Roach **_roach, roach __roach)
  * @param roach_payload - Roach mover
  * @param lizard_payload - Lizard mover
  */
-void publish_connect(void *publisher, MessageToServer *recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
+void publish_connect(void *publisher, message_to_server *recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
     // Assume FieldUpdateConnect is the name of your Protobuf message
     FieldUpdateConnect field_update_message = FIELD_UPDATE_CONNECT__INIT;
@@ -243,19 +246,23 @@ void publish_connect(void *publisher, MessageToServer *recv_message, roach_mover
     switch (recv_message->client_id)
     {
     case LIZARD:
+    {
         Lizard *proto_lizard;
         populate_lizard(&proto_lizard, lizard_payload->lizards[id]);
         id = *(lizard_payload->num_lizards) - 1;
         field_update_message.position_in_array = id;
         field_update_message.connected_lizard = proto_lizard;
-        break;
+    }
+    break;
     case ROACH:
+    {
         Roach *proto_roach;
         populate_roach(&proto_roach, roach_payload->roaches[id]);
         id = *(roach_payload->num_roaches) - 1;
         field_update_message.position_in_array = id;
         field_update_message.connected_roach = proto_roach;
-        break;
+    }
+    break;
     }
 
     // Serialize the message
@@ -279,11 +286,14 @@ void publish_connect(void *publisher, MessageToServer *recv_message, roach_mover
  * @param publisher  - ZMQ socket
  * @param recv_message - Message received from the client
  */
-void publish_disconnect(void *publisher, MessageToServer *recv_message)
+void publish_disconnect(void *publisher, message_to_server *recv_message)
 {
     // Create field update message
     FieldUpdateDisconnect field_update_message = FIELD_UPDATE_DISCONNECT__INIT;
-    field_update_message.message = recv_message;
+    MessageToServer message_to_server_proto = MESSAGE_TO_SERVER__INIT;
+    // Convert recv message from message to proto
+    convert_message_to_server_to_proto_message_to_server(&message_to_server_proto, recv_message);
+    field_update_message.message = &message_to_server_proto;
     field_update_message.client_id = recv_message->client_id;
     field_update_message.position_in_array = recv_message->value;
 
@@ -399,7 +409,6 @@ int main(int argc, char *argv[])
     noecho();
 
     zmq_msg_t message;
-    zmq_msg_init(&message);
 
     // Creates a window and draws a border
     window_data *game_window;
@@ -418,7 +427,7 @@ int main(int argc, char *argv[])
     int slot_lizards = MAX_LIZARDS_ALLOWED;
     lizard lizards[MAX_LIZARDS_ALLOWED];
 
-    MessageToServer *recv_message;
+    message_to_server *recv_message = (message_to_server *)malloc(sizeof(message_to_server));
 
     roach_mover *roach_payload = malloc(sizeof(roach_mover));
     log_write("Creating roach mover\n");
@@ -444,6 +453,7 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+        zmq_msg_init(&message);
         // Receive a message part from the socket
         if (zmq_msg_recv(&message, responder, 0) == -1)
         {
@@ -458,17 +468,11 @@ int main(int argc, char *argv[])
         void *msg_data = zmq_msg_data(&message);
 
         // Unpack the Protobuf message
-        recv_message = message_to_server__unpack(NULL, msg_size, msg_data);
-        if (recv_message == NULL)
-        {
-            // Handle error - for example, log and continue
-            log_write("Error unpacking received message\n");
-            zmq_msg_close(&message);
-            continue;
-        }
+        MessageToServer *recv_message_proto = message_to_server__unpack(NULL, msg_size, msg_data);
 
         // Receive message from one of the clients
-        zmq_recv(responder, &recv_message, sizeof(MessageToServer), 0);
+        // zmq_recv(responder, &recv_message_proto, sizeof(MessageToServer), 0);
+        convert_proto_message_to_server_to_message_to_server(recv_message, recv_message_proto);
         log_write("Received message from client %d\n", recv_message->client_id);
 
         respawn_eaten_roaches(roach_payload, eaten_roaches, &eaten_roaches_count);
@@ -543,17 +547,20 @@ int main(int argc, char *argv[])
         }
 
         // Free the Protobuf message
-        message_to_server__free_unpacked(recv_message, NULL);
+        message_to_server__free_unpacked(recv_message_proto, NULL);
+
+        zmq_msg_close(&message);
     }
 
     endwin();
 
-    // Close the ZMQ message
-    zmq_msg_close(&message);
     zmq_close(responder);
     zmq_ctx_destroy(context);
 
     free(eaten_roaches);
+    free(roach_payload);
+    free(lizard_payload);
+    free(recv_message);
     log_close();
 
     return 0;
