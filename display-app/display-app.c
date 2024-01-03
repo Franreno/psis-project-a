@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
     roach_payload->should_use_responder = 0;
 
     // Create dummy pointer to eaten roaches
-    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
+    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_SLOTS_ALLOWED);
     int eaten_roaches_count = 0;
 
     roach_payload->eaten_roaches = eaten_roaches;
