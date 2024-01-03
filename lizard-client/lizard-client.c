@@ -130,7 +130,7 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
 
         // Server replies with failure if Lizard should disconnect
         zmq_recv(requester, &server_reply, sizeof(int), 0);
-        if (server_reply < 0)
+        if (server_reply < -1000)
         {
             // End ncurses mode and print error message
             endwin();

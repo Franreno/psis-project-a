@@ -8,12 +8,16 @@
 #define DEFAULT_SERVER_PORT "5555"
 #define WINDOW_SIZE 30
 #define ROACH_MOVE_CHANCE 50
+#define WASP_MOVE_CHANCE 25
 #define ROACH_MOVE_DELAY 1000000
+#define WASP_MOVE_DELAY 2000000
 #define MAX_ROACH_SCORE 5
 #define MAX_ROACHES_GENERATED 10
-#define MAX_ROACHES_ALLOWED (WINDOW_SIZE * WINDOW_SIZE / 3)
+#define MAX_WASPS_GENERATED 10
+#define MAX_SLOTS_ALLOWED (WINDOW_SIZE * WINDOW_SIZE / 3)
 #define MAX_LIZARDS_ALLOWED 10
 #define MAX_LIZARD_SCORE 50
+#define WASP_DAMAGE 10
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -45,16 +49,17 @@ typedef enum client_type
 {
     LIZARD,
     ROACH,
+    WASP,
     DISPLAY_APP,
     LIZARD_BODY,
 } client_type;
 
 typedef struct message_to_server
 {
-    int client_id;         // 1 = lizard, 2 = roach, 3 = display-app
+    int client_id;         // 1 = lizard, 2 = roach, 3 = wasp, 4 = display app, 5 = lizard body
     int type;              // 1 = connect, 2 = movement
     int value;             // usage depends on client_id and type
-    direction_t direction; // direction to move the roach
+    direction_t direction; // direction of movement
     char message_accepted; // 1 = message accepted, 0 = message rejected
 } message_to_server;
 
@@ -76,6 +81,13 @@ typedef struct roach
     char is_eaten;
     time_t timestamp;
 } roach;
+
+typedef struct wasp
+{
+    char ch;
+    int x;
+    int y;
+} wasp;
 
 typedef struct field_update_movement
 {

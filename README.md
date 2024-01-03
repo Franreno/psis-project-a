@@ -1,4 +1,4 @@
-# Lizard N Roaches
+# LizardsNRoachesNWasps
 
 ## How to run
 
@@ -16,10 +16,10 @@ this will compile everything and output all of it into the "outputs" folder
 
 To run, create a terminal and enter at the output folder
 
-To run the server execute:
+To run the game server execute:
 
 ```
-./lizardsNroaches-server
+./lizardsNroachesNwasps-server
 ```
 
 To run the lizard client execute:
@@ -34,8 +34,8 @@ To run the roaches client execute:
 ./roaches-client
 ```
 
-And finally to run the display:
+To run the wasps client execute:
 
 ```
-./display-app
+./wasps-client
 ```

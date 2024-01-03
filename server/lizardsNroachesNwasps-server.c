@@ -1,4 +1,5 @@
 #include "default_consts.h"
+#include "wasp-mover.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
 #include "logger.h"
@@ -14,10 +15,13 @@ void print_constants()
     printf("The server is running with the following parameters:\n");
     printf("WINDOW_SIZE: %d\n", WINDOW_SIZE);
     printf("ROACH_MOVE_CHANCE: %d\n", ROACH_MOVE_CHANCE);
+    printf("WASP_MOVE_CHANCE: %d\n", WASP_MOVE_CHANCE);
     printf("ROACH_MOVE_DELAY: %d\n", ROACH_MOVE_DELAY);
+    printf("WASP_MOVE_DELAY: %d\n", WASP_MOVE_DELAY);
     printf("MAX_ROACH_SCORE: %d\n", MAX_ROACH_SCORE);
     printf("MAX_ROACHES_GENERATED: %d\n", MAX_ROACHES_GENERATED);
-    printf("MAX_ROACHES_ALLOWED: %d\n", MAX_ROACHES_ALLOWED);
+    printf("MAX_WASPS_GENERATED: %d\n", MAX_WASPS_GENERATED);
+    printf("MAX_SLOTS_ALLOWED: %d\n", MAX_SLOTS_ALLOWED);
     printf("MAX_LIZARDS_ALLOWED: %d\n", MAX_LIZARDS_ALLOWED);
     printf("MAX_LIZARD_SCORE: %d\n", MAX_LIZARD_SCORE);
 }
@@ -85,13 +89,14 @@ int create_and_connect_sockets(char *rep_server_socket_address, char *pub_server
 }
 
 /**
- * @brief - Serialize the window matrix, lizard mover and roach mover and send to the
+ * @brief - Serialize the window matrix, lizard mover, roach mover and wasp mover and send to the
  * connecting display app
  *
  * @param responder  - ZMQ socket
  * @param data - Window data
  * @param roach_mover - Roach mover
  * @param lizard_mover - Lizard mover
+ * @param wasp_mover - Wasp mover
  */
 void process_display_app_message(void *responder, window_data *data, roach_mover *roach_mover, lizard_mover *lizard_mover)
 {
@@ -156,12 +161,13 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
 }
 
 /**
- * @brief - Publishes to the subscriber the move that happeend
+ * @brief - Publishes to the subscriber the new move
  *
  * @param publisher - ZMQ socket
  * @param recv_message- Message received from the client
  * @param roach_payload- Roach mover
  * @param lizard_payload- Lizard mover
+ * @param wasp_payload- Wasp mover
  */
 void publish_movement(void *publisher, message_to_server *recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
@@ -228,12 +234,13 @@ void populate_roach(Roach **_roach, roach __roach)
 }
 
 /**
- * @brief - Publishes to the subscriber the connect that happeend
+ * @brief - Publishes to the subscriber the new connection
  *
  * @param publisher - ZMQ socket
  * @param recv_message - Message received from the client
  * @param roach_payload - Roach mover
  * @param lizard_payload - Lizard mover
+ * @param wasp_payload - Wasp mover
  */
 void publish_connect(void *publisher, message_to_server *recv_message, roach_mover *roach_payload, lizard_mover *lizard_payload)
 {
@@ -340,7 +347,7 @@ void respawn_eaten_roaches(roach_mover *roach_payload, roach **eaten_roaches, in
 
                 // Get the stack info of the new position
                 cell = get_cell(roach_payload->game_window->matrix, new_x, new_y);
-            } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH);
+            } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH || cell->stack[cell->top].client_id == WASP);
 
             eaten_roach->x = new_x;
             eaten_roach->y = new_y;
@@ -364,7 +371,7 @@ int main(int argc, char *argv[])
     char *rep_server_socket_address;
     char *pub_server_socket_address;
 
-    printf("Usage: ./lizardsNroaches-server <rep_server_address> <rep_server_port <pub_server_address> <pub_server_port>\n");
+    printf("Usage: ./lizardsNroachesNwasps-server <rep_server_address> <rep_server_port <pub_server_address> <pub_server_port>\n");
 
     // Check if address and port were provided as command line arguments, if not, use default values
     if (argc != 5)
@@ -417,10 +424,12 @@ int main(int argc, char *argv[])
     // Create a new window for the scores
     WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
 
-    // Initialize variables used for roach tracking
+    // Initialize variables used for roach and wasp tracking
+    int num_wasps = 0;
     int num_roaches = 0;
-    int slot_roaches = MAX_ROACHES_ALLOWED;
-    roach roaches[MAX_ROACHES_ALLOWED];
+    wasp wasps[MAX_SLOTS_ALLOWED];
+    roach roaches[MAX_SLOTS_ALLOWED];
+    int slots_available = MAX_SLOTS_ALLOWED;
 
     // Initialize variables used for lizard tracking
     int num_lizards = 0;
@@ -429,9 +438,14 @@ int main(int argc, char *argv[])
 
     message_to_server *recv_message = (message_to_server *)malloc(sizeof(message_to_server));
 
+    wasp_mover *wasp_payload = malloc(sizeof(wasp_mover));
+    log_write("Creating wasp mover\n");
+    new_wasp_mover(&wasp_payload, &recv_message, wasps, responder, &num_wasps, &slots_available, game_window);
+    wasp_payload->should_use_responder = 1;
+
     roach_mover *roach_payload = malloc(sizeof(roach_mover));
     log_write("Creating roach mover\n");
-    new_roach_mover(&roach_payload, recv_message, roaches, responder, &num_roaches, &slot_roaches, game_window);
+    new_roach_mover(&roach_payload, &recv_message, roaches, responder, &num_roaches, &slots_available, game_window);
     roach_payload->should_use_responder = 1;
 
     lizard_mover *lizard_payload = malloc(sizeof(lizard_mover));
@@ -439,11 +453,12 @@ int main(int argc, char *argv[])
     new_lizard_mover(&lizard_payload, recv_message, lizards, responder, &num_lizards, &slot_lizards, game_window);
     lizard_payload->should_use_responder = 1;
 
+    wasp_payload->wasps = wasps;
     roach_payload->lizards = lizards;
     lizard_payload->roaches = roaches;
 
     // Create pointer to eaten roaches
-    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
+    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_SLOTS_ALLOWED);
     int eaten_roaches_count = 0;
 
     roach_payload->eaten_roaches = eaten_roaches;
@@ -475,6 +490,7 @@ int main(int argc, char *argv[])
         convert_proto_message_to_server_to_message_to_server(recv_message, recv_message_proto);
         log_write("Received message from client %d\n", recv_message->client_id);
 
+        // Respawn the eaten roaches
         respawn_eaten_roaches(roach_payload, eaten_roaches, &eaten_roaches_count);
 
         // Print the scores in the score window
@@ -515,6 +531,10 @@ int main(int argc, char *argv[])
             log_write("Processing roach message\n");
             process_roach_message(roach_payload);
             break;
+        case WASP:
+            log_write("Processing wasp message\n");
+            process_wasp_message(wasp_payload);
+            break;
         case DISPLAY_APP:
             log_write("Processing display app message\n");
             process_display_app_message(responder, game_window, roach_payload, lizard_payload);
@@ -524,6 +544,7 @@ int main(int argc, char *argv[])
             break;
         }
 
+        // Respawn the eaten roaches
         respawn_eaten_roaches(roach_payload, eaten_roaches, &eaten_roaches_count);
 
         if (recv_message->client_id == DISPLAY_APP || recv_message->message_accepted == 0)
