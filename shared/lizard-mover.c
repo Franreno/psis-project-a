@@ -64,6 +64,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     {
         new_lizard_id = -1;
         if (lizard_payload->should_use_responder)
+            // TODO: ADD PROTO ENCODER
             zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0);
 
         return;
@@ -117,6 +118,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
 
     // Reply to lizard client indicating position of the new lizard in the array
     if (lizard_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0);
 }
 
@@ -372,6 +374,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 
     // Reply with the lizard score
     if (lizard_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(lizard_payload->responder, &lizard_payload->lizards[lizard_id].score, sizeof(int), 0);
 }
 
@@ -444,6 +447,7 @@ void process_lizard_disconnect(lizard_mover *lizard_payload)
     lizard_payload->lizards[lizard_id].is_winner = 0;
 
     if (lizard_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
 
     (*(lizard_payload->num_lizards))--;

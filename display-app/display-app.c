@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
     message_to_server send_message;
     send_message.client_id = DISPLAY_APP;
     send_message.type = CONNECT;
+    // TODO: ADD PROTO ENCODER
     zmq_send(requester, &send_message, sizeof(message_to_server), 0);
 
     // ---------- START RECEIVE INITAL DATA FROM SERVER ----------

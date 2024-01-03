@@ -70,6 +70,7 @@ int generate_and_connect_wasps(int num_wasps, int *wasps, void *requester, messa
     for (int i = 0; i < num_wasps; i++)
     {
         // Send message to server connecting a wasp
+        // TODO: ADD PROTO ENCODER
         zmq_send(requester, send_message, sizeof(message_to_server), 0);
         printf("Attempting to connect wasp\n");
 
@@ -126,6 +127,7 @@ int move_wasps(int num_wasps, int *wasps, void *requester, message_to_server *se
                 send_message->direction = rand() % 4;
 
                 // Send wasp movement message to server
+                // TODO: ADD PROTO ENCODER
                 zmq_send(requester, send_message, sizeof(message_to_server), 0);
 
                 // Server replies with failure if wasp should disconnect
@@ -164,6 +166,7 @@ int disconnect_wasps(int num_wasps, int *wasps, void *requester, message_to_serv
     for (int i = 0; i < num_wasps; i++)
     {
         send_message->value = wasps[i];
+        // TODO: ADD PROTO ENCODER
         zmq_send(requester, send_message, sizeof(message_to_server), 0);
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply != 0)

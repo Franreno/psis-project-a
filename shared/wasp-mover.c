@@ -12,12 +12,12 @@
  * @param game_window - Game window
  */
 void new_wasp_mover(wasp_mover **wasp_payload,
-                     message_to_server *recv_message,
-                     wasp *wasps,
-                     void *responder,
-                     int *num_wasps,
-                     int *slot_wasps,
-                     window_data *game_window)
+                    message_to_server *recv_message,
+                    wasp *wasps,
+                    void *responder,
+                    int *num_wasps,
+                    int *slot_wasps,
+                    window_data *game_window)
 {
     (*wasp_payload)->wasps = wasps;
     (*wasp_payload)->responder = responder;
@@ -64,6 +64,7 @@ void process_wasp_connect(wasp_mover *wasp_payload)
     {
         new_wasp_id = -1;
         if (wasp_payload->should_use_responder)
+            // TODO: ADD PROTO ENCODER
             zmq_send(wasp_payload->responder, &new_wasp_id, sizeof(int), 0);
 
         return;
@@ -102,6 +103,7 @@ void process_wasp_connect(wasp_mover *wasp_payload)
 
     // Reply indicating position of the wasp in the array
     if (wasp_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(wasp_payload->responder, &new_wasp_id, sizeof(int), 0);
 }
 
@@ -165,12 +167,9 @@ int calculate_wasp_movement(wasp_mover *wasp_payload, int *new_x, int *new_y)
         return 0;
     }
 
-
-
     // Check the top element of the stack to see if it's a roach or a wasp
     if (cell->stack[cell->top].client_id == ROACH || cell->stack[cell->top].client_id == WASP)
         return 0;
-
 
     // Otherwise, the wasp can move to the new position
 
@@ -194,6 +193,7 @@ void process_wasp_movement(wasp_mover *wasp_payload)
 
     // Reply indicating success moving the wasp
     if (wasp_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(wasp_payload->responder, &success, sizeof(int), 0);
 }
 
@@ -232,6 +232,7 @@ void process_wasp_disconnect(wasp_mover *wasp_payload)
     window_erase(wasp_payload->game_window, wasp_payload->wasps[wasp_id].x, wasp_payload->wasps[wasp_id].y, (wasp_payload->wasps[wasp_id].ch) | A_BOLD);
 
     if (wasp_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(wasp_payload->responder, &success, sizeof(int), 0);
 
     (*(wasp_payload->num_wasps))--;

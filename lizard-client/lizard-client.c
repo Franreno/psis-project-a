@@ -1,4 +1,5 @@
 #include "default_consts.h"
+#include "proto-encoder.h"
 
 /**
  * @brief Create a and connect socket object
@@ -56,7 +57,29 @@ int connect_lizard(void *requester, message_to_server *send_message)
 
     // Send a connect message to the server and wait for a response
     printf("Attempting to connect lizard");
-    zmq_send(requester, send_message, sizeof(message_to_server), 0);
+
+    // ------ START PROTO ENCODER ------
+    // Create a new message to server
+    MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
+    message_to_server_proto__init(message_to_server_proto);
+
+    // Convert message to server to proto message to server
+    message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
+
+    // Get the size of the serialized message
+    size_t message_to_server_proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
+
+    // Serialize the message
+    void *message_to_server_proto_buffer = malloc(message_to_server_proto_size);
+    message_to_server_proto__pack(message_to_server_proto, message_to_server_proto_buffer);
+
+    // Send the message
+    zmq_send(requester, message_to_server_proto_buffer, message_to_server_proto_size, 0);
+
+    // Free the serialized message
+    free(message_to_server_proto_buffer);
+    message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
+    // ------ END PROTO ENCODER ------
 
     // Server replies with either failure or the assigned lizard id
     zmq_recv(requester, &lizard_id, sizeof(int), 0);
@@ -126,7 +149,29 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
         }
 
         // Send lizard movement message to server
-        zmq_send(requester, send_message, sizeof(message_to_server), 0);
+
+        // ------ START PROTO ENCODER ------
+        // Create a new message to server
+        MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(message_to_server_proto);
+
+        // Convert message to server to proto message to server
+        message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
+
+        // Get the size of the serialized message
+        size_t message_to_server_proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
+
+        // Serialize the message
+        void *message_to_server_proto_buffer = malloc(message_to_server_proto_size);
+        message_to_server_proto__pack(message_to_server_proto, message_to_server_proto_buffer);
+
+        // Send the message
+        zmq_send(requester, message_to_server_proto_buffer, message_to_server_proto_size, 0);
+
+        // Free the serialized message
+        free(message_to_server_proto_buffer);
+        message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
+        // ------ END PROTO ENCODER ------
 
         // Server replies with failure if Lizard should disconnect
         zmq_recv(requester, &server_reply, sizeof(int), 0);
@@ -177,7 +222,29 @@ int disconnect_lizard(int lizard_id, void *requester, message_to_server *send_me
     send_message->value = lizard_id;
 
     // Send lizard disconnect message to server
-    zmq_send(requester, send_message, sizeof(message_to_server), 0);
+    // ------ START PROTO ENCODER ------
+    // Convert message to server to proto message to server
+    MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
+    message_to_server_proto__init(message_to_server_proto);
+
+    // Convert message to server to proto message to server
+    message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
+
+    // Get the size of the serialized message
+    size_t message_to_server_proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
+
+    // Serialize the message
+    void *message_to_server_proto_buffer = malloc(message_to_server_proto_size);
+    message_to_server_proto__pack(message_to_server_proto, message_to_server_proto_buffer);
+
+    // Send the message
+    zmq_send(requester, message_to_server_proto_buffer, message_to_server_proto_size, 0);
+
+    // Free the serialized message
+    free(message_to_server_proto_buffer);
+    message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
+
+    // ------ END PROTO ENCODER ------
     zmq_recv(requester, &server_reply, sizeof(int), 0);
     if (server_reply != 0)
     {

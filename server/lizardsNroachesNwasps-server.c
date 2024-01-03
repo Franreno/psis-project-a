@@ -107,11 +107,13 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
     if (!serialized_data)
     {
         int error_code = -1; // Example error code
+        // TODO: ADD PROTO ENCODER (maybe)
         zmq_send(responder, &error_code, sizeof(error_code), 0);
         return;
     }
 
     // Send the serialized data
+    // TODO: ADD PROTO ENCODER
     zmq_send(responder, &serialized_size, sizeof(serialized_size), ZMQ_SNDMORE);
     zmq_send(responder, serialized_data, serialized_size, ZMQ_SNDMORE);
 
@@ -126,11 +128,13 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
     {
         log_write("Failed to serialize roach mover!!!\n");
         int error_code = -1; // Example error code
+        // TODO: ADD PROTO ENCODER
         zmq_send(responder, &error_code, sizeof(error_code), 0);
         return;
     }
 
     // Send the serialized data
+    // TODO: ADD PROTO ENCODER
     zmq_send(responder, &serialized_roach_mover_size, sizeof(serialized_roach_mover_size), ZMQ_SNDMORE);
     zmq_send(responder, serialized_roach_mover, serialized_roach_mover_size, ZMQ_SNDMORE);
 
@@ -145,11 +149,13 @@ void process_display_app_message(void *responder, window_data *data, roach_mover
     {
         log_write("Failed to serialize lizard mover!!!\n");
         int error_code = -1; // Example error code
+        // TODO: ADD PROTO ENCODER
         zmq_send(responder, &error_code, sizeof(error_code), 0);
         return;
     }
 
     // Send the serialized data
+    // TODO: ADD PROTO ENCODER
     zmq_send(responder, &serialized_lizard_mover_size, sizeof(serialized_lizard_mover_size), ZMQ_SNDMORE);
     zmq_send(responder, serialized_lizard_mover, serialized_lizard_mover_size, 0);
 
@@ -187,6 +193,7 @@ void publish_movement(void *publisher, message_to_server recv_message, roach_mov
         break;
     }
 
+    // TODO: ADD PROTO ENCODER
     zmq_send(publisher, "field_update_movement", strlen("field_update_movement"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
@@ -226,6 +233,7 @@ void publish_connect(void *publisher, message_to_server recv_message, roach_move
         break;
     }
 
+    // TODO: ADD PROTO ENCODER
     zmq_send(publisher, "field_update_connect", strlen("field_update_connect"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
@@ -244,6 +252,7 @@ void publish_disconnect(void *publisher, message_to_server recv_message)
     field_update_message.client_id = recv_message.client_id;
     field_update_message.position_in_array = recv_message.value;
 
+    // TODO: ADD PROTO ENCODER
     zmq_send(publisher, "field_update_disconnect", strlen("field_update_disconnect"), ZMQ_SNDMORE);
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
@@ -382,7 +391,7 @@ int main(int argc, char *argv[])
     new_lizard_mover(&lizard_payload, &recv_message, lizards, responder, &num_lizards, &slot_lizards, game_window);
     lizard_payload->should_use_responder = 1;
 
-    wasp_payload->wasps = wasps;  
+    wasp_payload->wasps = wasps;
     roach_payload->lizards = lizards;
     lizard_payload->roaches = roaches;
 

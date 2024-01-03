@@ -64,6 +64,7 @@ void process_roach_connect(roach_mover *roach_payload)
     {
         new_roach_id = -1;
         if (roach_payload->should_use_responder)
+            // TODO: ADD PROTO ENCODERs
             zmq_send(roach_payload->responder, &new_roach_id, sizeof(int), 0);
 
         return;
@@ -96,12 +97,13 @@ void process_roach_connect(roach_mover *roach_payload)
     // Once the position is valid, update the roach position
     roach_payload->roaches[new_roach_id].x = new_x;
     roach_payload->roaches[new_roach_id].y = new_y;
-    
+
     // Draw the roach in the random position
     window_draw(roach_payload->game_window, roach_payload->roaches[new_roach_id].x, roach_payload->roaches[new_roach_id].y, (roach_payload->roaches[new_roach_id].ch + '0') | A_BOLD, ROACH, new_roach_id);
 
     // Reply indicating position of the roach in the array
     if (roach_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &new_roach_id, sizeof(int), 0);
 }
 
@@ -207,6 +209,7 @@ void process_roach_movement(roach_mover *roach_payload)
 
     // Reply indicating success moving the roach
     if (roach_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 }
 
@@ -244,6 +247,7 @@ void process_roach_disconnect(roach_mover *roach_payload)
     window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
 
     if (roach_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 
     (*(roach_payload->num_roaches))--;

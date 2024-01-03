@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+// Message for layer_char
+message LayerCharProto {
+    string ch = 1;  // Assuming char is represented as a single-character string
+    int32 client_id = 2;
+    int32 position_in_array = 3;
+}
+
+// Message for layer_cell
+message LayerCellProto {
+    repeated LayerCharProto stack = 1;  // A repeated field to represent the stack of layer_char
+    int32 top = 2;                  // Index of the top of the stack
+    int32 capacity = 3;             // Capacity of the stack
+}
+
+// Message for window_matrix
+message WindowMatrixProto {
+    repeated LayerCellProto cells = 1;  // A repeated field to represent 1D array matrix of layer_cell
+    int32 width = 2;               // Number of rows of the matrix
+    int32 height = 3;              // Number of columns of the matrix
+}
+
+// Message for window_data
+message WindowDataProto {
+    WindowMatrixProto matrix = 1;       // Nested message for window_matrix
+}
