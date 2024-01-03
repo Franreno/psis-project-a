@@ -440,12 +440,12 @@ int main(int argc, char *argv[])
 
     wasp_mover *wasp_payload = malloc(sizeof(wasp_mover));
     log_write("Creating wasp mover\n");
-    new_wasp_mover(&wasp_payload, &recv_message, wasps, responder, &num_wasps, &slots_available, game_window);
+    new_wasp_mover(&wasp_payload, recv_message, wasps, responder, &num_wasps, &slots_available, game_window);
     wasp_payload->should_use_responder = 1;
 
     roach_mover *roach_payload = malloc(sizeof(roach_mover));
     log_write("Creating roach mover\n");
-    new_roach_mover(&roach_payload, &recv_message, roaches, responder, &num_roaches, &slots_available, game_window);
+    new_roach_mover(&roach_payload, recv_message, roaches, responder, &num_roaches, &slots_available, game_window);
     roach_payload->should_use_responder = 1;
 
     lizard_mover *lizard_payload = malloc(sizeof(lizard_mover));

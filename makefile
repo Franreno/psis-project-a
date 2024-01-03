@@ -27,7 +27,7 @@ PROTO_OBJECTS := $(patsubst $(PROTO_DEFINITIONS_DIR)/%.proto, $(PROTO_COMPILED_D
 $(shell mkdir -p $(OUTPUT_DIR) $(PROTO_COMPILED_DIR))
 
 
-all: protos $(OUTPUT_DIR)/lizardsNroaches-server $(OUTPUT_DIR)/display-app $(OUTPUT_DIR)/lizard-client $(OUTPUT_DIR)/roaches-client $(OUTPUT_DIR)/wasps-client
+all: protos $(OUTPUT_DIR)/lizardsNroachesNwasps-server $(OUTPUT_DIR)/display-app $(OUTPUT_DIR)/lizard-client $(OUTPUT_DIR)/roaches-client $(OUTPUT_DIR)/wasps-client
 
 protos: $(PROTO_OBJECTS)
 
@@ -36,11 +36,9 @@ $(PROTO_COMPILED_DIR)/%.pb-c.o: $(PROTO_DEFINITIONS_DIR)/%.proto
 	protoc-c --c_out=$(PROTO_COMPILED_DIR) -I=$(PROTO_DEFINITIONS_DIR) $<
 	$(CC) $(CFLAGS) -c $(PROTO_COMPILED_DIR)/$*.pb-c.c -o $(PROTO_COMPILED_DIR)/$*.pb-c.o
 
-# Link the final executables from their respective object files and shared object files
-$(OUTPUT_DIR)/lizardsNroaches-server: $(OBJS_LIZARDS_SERVER) $(PROTO_OBJECTS)
 
 # Link the final executables from their respective object files and shared object files
-$(OUTPUT_DIR)/lizardsNroachesNwasps-server: $(OBJS_LIZARDS_SERVER)
+$(OUTPUT_DIR)/lizardsNroachesNwasps-server: $(OBJS_LIZARDS_SERVER) $(PROTO_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(OUTPUT_DIR)/display-app: $(OBJS_DISPLAY_APP) $(PROTO_OBJECTS)
