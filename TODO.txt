@@ -21,4 +21,4 @@ Implement multithreading server side - 4 threads for handling messages from all 
 
 Error treatment and cheating prevention
 
-Use protocol buffers for message encoding
+DONE <- Use protocol buffers for message encoding 
