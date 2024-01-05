@@ -19,6 +19,7 @@ typedef struct _LayerCharProto LayerCharProto;
 typedef struct _LayerCellProto LayerCellProto;
 typedef struct _WindowMatrixProto WindowMatrixProto;
 typedef struct _WindowDataProto WindowDataProto;
+typedef struct _FieldUpdateProto FieldUpdateProto;
 
 
 /* --- enums --- */
@@ -110,6 +111,23 @@ struct  _WindowDataProto
     , NULL }
 
 
+struct  _FieldUpdateProto
+{
+  ProtobufCMessage base;
+  size_t n_updated_cells;
+  LayerCellProto **updated_cells;
+  size_t n_updated_cell_indexes;
+  int32_t *updated_cell_indexes;
+  size_t n_scores;
+  int32_t *scores;
+  int32_t size_of_updated_cells;
+  int32_t size_of_scores;
+};
+#define FIELD_UPDATE_PROTO__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&field_update_proto__descriptor) \
+    , 0,NULL, 0,NULL, 0,NULL, 0, 0 }
+
+
 /* LayerCharProto methods */
 void   layer_char_proto__init
                      (LayerCharProto         *message);
@@ -186,6 +204,25 @@ WindowDataProto *
 void   window_data_proto__free_unpacked
                      (WindowDataProto *message,
                       ProtobufCAllocator *allocator);
+/* FieldUpdateProto methods */
+void   field_update_proto__init
+                     (FieldUpdateProto         *message);
+size_t field_update_proto__get_packed_size
+                     (const FieldUpdateProto   *message);
+size_t field_update_proto__pack
+                     (const FieldUpdateProto   *message,
+                      uint8_t             *out);
+size_t field_update_proto__pack_to_buffer
+                     (const FieldUpdateProto   *message,
+                      ProtobufCBuffer     *buffer);
+FieldUpdateProto *
+       field_update_proto__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   field_update_proto__free_unpacked
+                     (FieldUpdateProto *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*LayerCharProto_Closure)
@@ -200,6 +237,9 @@ typedef void (*WindowMatrixProto_Closure)
 typedef void (*WindowDataProto_Closure)
                  (const WindowDataProto *message,
                   void *closure_data);
+typedef void (*FieldUpdateProto_Closure)
+                 (const FieldUpdateProto *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -210,6 +250,7 @@ extern const ProtobufCMessageDescriptor layer_char_proto__descriptor;
 extern const ProtobufCMessageDescriptor layer_cell_proto__descriptor;
 extern const ProtobufCMessageDescriptor window_matrix_proto__descriptor;
 extern const ProtobufCMessageDescriptor window_data_proto__descriptor;
+extern const ProtobufCMessageDescriptor field_update_proto__descriptor;
 
 PROTOBUF_C__END_DECLS
 

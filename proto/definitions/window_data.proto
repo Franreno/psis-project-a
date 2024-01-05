@@ -25,3 +25,11 @@ message WindowMatrixProto {
 message WindowDataProto {
     WindowMatrixProto matrix = 1;       // Nested message for window_matrix
 }
+
+message FieldUpdateProto {
+    repeated LayerCellProto updated_cells = 1;
+    repeated int32 updated_cell_indexes = 2;
+    repeated int32 scores = 3;
+    int32 size_of_updated_cells = 4;
+    int32 size_of_scores = 5;
+}

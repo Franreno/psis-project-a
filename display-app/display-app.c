@@ -3,6 +3,7 @@
 #include "window.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
+#include "proto-encoder.h"
 
 /**
  * @brief Receives a message from a socket
@@ -134,9 +135,7 @@ int main(int argc, char *argv[])
     if (create_and_connect_sockets(req_server_socket_address, sub_server_socket_address, &context, &requester, &subscriber) != 0)
         return -1;
 
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_movement", 3);
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_connect", 3);
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_disconnect", 3);
+    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update", 3);
 
     // Initialize ncurses
     initscr();
@@ -148,8 +147,24 @@ int main(int argc, char *argv[])
     message_to_server send_message;
     send_message.client_id = DISPLAY_APP;
     send_message.type = CONNECT;
-    // TODO: ADD PROTO ENCODER
-    zmq_send(requester, &send_message, sizeof(message_to_server), 0);
+    // -- Start ProtoEncoder --
+    MessageToServerProto *proto = malloc(sizeof(MessageToServerProto));
+    message_to_server_proto__init(proto);
+
+    message_to_server_to_proto_message_to_server(proto, &send_message);
+
+    size_t proto_size = message_to_server_proto__get_packed_size(proto);
+    void *proto_buffer = malloc(proto_size);
+
+    message_to_server_proto__pack(proto, proto_buffer);
+
+    // Send the message
+    zmq_send(requester, proto_buffer, proto_size, 0);
+
+    free(proto_buffer);
+    message_to_server_proto__free_unpacked(proto, NULL);
+
+    // -- End ProtoEncoder --
 
     // ---------- START RECEIVE INITAL DATA FROM SERVER ----------
 
@@ -265,77 +280,15 @@ int main(int argc, char *argv[])
 
         // ---------- START RECEIVE FIELD UPDATE FROM SERVER ----------
 
-        if (strcmp(type, "field_update_movement") == 0)
-        {
-            log_write("Received field update movement\n");
-            field_update_movement *field_update_message = malloc(sizeof(field_update_movement));
-            zmq_recv(subscriber, field_update_message, sizeof(field_update_movement), 0);
+        // Buffer to hold the received data
+        field_update *field_update = malloc(sizeof(field_update));
+        zmq_recv(subscriber, field_update, sizeof(field_update), 0);
 
-            // Parse the field_update_message
-            message_to_server recv_message = field_update_message->message;
-            // Point movers to the message received
-            roach_payload->recv_message = &recv_message;
-            lizard_payload->recv_message = &recv_message;
+        // Update the matrix with the received field update
+        update_matrix_cells(game_window, field_update->updated_cells, field_update->updated_cell_indexes, field_update->size_of_updated_cells);
 
-            switch (recv_message.client_id)
-            {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_movement(lizard_payload);
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                int should_process_movement = refresh_eaten_roach_for_display(roach_payload, field_update_message->new_x, field_update_message->new_y, field_update_message->is_eaten);
-                if (should_process_movement)
-                    process_roach_movement(roach_payload);
-                break;
-            }
-
-            free(field_update_message);
-        }
-        else if (strcmp(type, "field_update_connect") == 0)
-        {
-            log_write("Received field update connect\n");
-            field_update_connect *field_update_message = malloc(sizeof(field_update_connect));
-            zmq_recv(subscriber, field_update_message, sizeof(field_update_connect), 0);
-            message_to_server recv_message = field_update_message->message;
-            roach_payload->recv_message = &recv_message;
-            lizard_payload->recv_message = &recv_message;
-            switch (field_update_message->message.client_id)
-            {
-            case LIZARD:
-                log_write("Processing lizard connect message\n");
-                process_lizard_inject_connect(lizard_payload, field_update_message->connected_lizard, field_update_message->position_in_array);
-                break;
-            case ROACH:
-                log_write("Processing roach connect message\n");
-                process_roach_inject_connect(roach_payload, field_update_message->connected_roach, field_update_message->position_in_array);
-                break;
-            }
-
-            free(field_update_message);
-        }
-        else if (strcmp(type, "field_update_disconnect") == 0)
-        {
-            log_write("Received field update disconnect\n");
-            field_update_disconnect *field_update_message = malloc(sizeof(field_update_disconnect));
-            zmq_recv(subscriber, field_update_message, sizeof(field_update_disconnect), 0);
-            message_to_server recv_message = field_update_message->message;
-            roach_payload->recv_message = &recv_message;
-            lizard_payload->recv_message = &recv_message;
-            switch (field_update_message->message.client_id)
-            {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_disconnect(lizard_payload);
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                process_roach_disconnect(roach_payload);
-                break;
-            }
-            free(field_update_message);
-        }
+        draw_entire_matrix(game_window);
+        // ---------- END RECEIVE FIELD UPDATE FROM SERVER ----------
         free(type);
     }
 

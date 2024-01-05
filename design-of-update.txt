@@ -1,0 +1,26 @@
+Everytime there is a change in the structure of the board, we should send a update field to the publisher.
+The display should only know about the matrix, it does not need to know about the statuses of the other players.
+This would envolve sending an update each time the position was updated.
+
+What are some possible places to send this update?
+
+- A thing is drawn on the board.
+- A thing is removed from the board.
+- A score is updated.
+
+The structure of field update should have an array of changed cells. 
+This changed cells should have its information about the stack. Basically it should "overwrite" the stack when it receives 
+one from the publisher.
+Also it should include a update of lizard scores. This means receiving a list of scores. These are the only things that the 
+display should know about the server.
+Certainly this would envolve sending the complete structure of the window for the first time.
+
+TODO:
+
+[X] Implement the new strucutre for the field update
+[] Implement a way to know which cells were updated in this cycle. 
+   Maybe have a field on the matrix itself to include a list of indexes that were udpated.
+[] Implement mechanism to include the lizard scores
+[X] Implement send mechanism of the updated values
+[X] Implement the protobuf mechanism
+[] Implement the zeromq sending mechanism

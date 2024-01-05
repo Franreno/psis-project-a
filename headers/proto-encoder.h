@@ -4,6 +4,7 @@
 #include "default_consts.h"
 #include "server_messages.pb-c.h"
 #include "window_data.pb-c.h"
+#include "window.h"
 
 void proto_direction_to_direction_t(DirectionProto *proto, direction_t *direction);
 void direction_t_to_proto_direction(DirectionProto *proto, direction_t *direction);
@@ -19,11 +20,13 @@ void proto_roach_to_roach(RoachProto *proto, roach *roach);
 void roach_to_proto_roach(RoachProto *proto, roach *roach);
 void proto_wasp_to_wasp(WaspProto *proto, wasp *wasp);
 void wasp_to_proto_wasp(WaspProto *proto, wasp *wasp);
-void proto_field_update_movement_to_field_update_movement(FieldUpdateMovementProto *proto, field_update_movement *field_update_movement);
-void field_update_movement_to_proto_field_update_movement(FieldUpdateMovementProto *proto, field_update_movement *field_update_movement);
-void proto_field_update_connect_to_field_update_connect(FieldUpdateConnectProto *proto, field_update_connect *field_update_connect);
-void field_update_connect_to_proto_field_update_connect(FieldUpdateConnectProto *proto, field_update_connect *field_update_connect);
-void proto_field_update_disconnect_to_field_update_disconnect(FieldUpdateDisconnectProto *proto, field_update_disconnect *field_update_disconnect);
-void field_update_disconnect_to_proto_field_update_disconnect(FieldUpdateDisconnectProto *proto, field_update_disconnect *field_update_disconnect);
+void proto_window_matrix_to_window_matrix(WindowMatrixProto *proto, window_matrix *matrix);
+void window_matrix_to_proto_window_matrix(WindowMatrixProto *proto, window_matrix *matrix);
+void proto_window_data_to_window_data(WindowDataProto *proto, window_data *data);
+void window_data_to_proto_window_data(WindowDataProto *proto, window_data *data);
+void convert_layer_cell_proto_to_layer_cell(LayerCellProto *proto, layer_cell *cell);
+void convert_layer_cell_to_layer_cell_proto(LayerCellProto *proto, layer_cell *cell);
+void proto_field_update_to_field_update(FieldUpdateProto *proto, field_update *field_update);
+void field_update_to_proto_field_update(FieldUpdateProto *proto, field_update *field_update);
 
 #endif // __PROTO_ENCODER_H__

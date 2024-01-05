@@ -36,7 +36,20 @@ typedef struct window_data
 {
     WINDOW *win;
     window_matrix *matrix;
+
+    int *updated_cell_indexes;
+    int size_of_updated_cells;
 } window_data;
+
+typedef struct field_update
+{
+    layer_cell *updated_cells;
+    int *updated_cell_indexes;
+    int *scores;
+
+    int size_of_updated_cells;
+    int size_of_scores;
+} field_update;
 
 // Function prototypes
 void window_init(window_data **game_window, int width, int height);
@@ -50,14 +63,16 @@ void init_window_matrix(window_matrix *matrix, int width, int height);
 void free_window_matrix(window_matrix *matrix);
 int get_char_priority(char ch);
 char window_matrix_remove_char(window_matrix *matrix, int x, int y);
-void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int client_id, int position_in_array);
+void window_matrix_add_char(window_data *data, int x, int y, char ch, int client_id, int position_in_array);
 char window_matrix_peek_below_top_char(window_matrix *matrix, int x, int y);
 void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffer_size);
 void deserialize_window_matrix(window_matrix *matrix, char *buffer);
 void window_init_with_matrix(window_data **data, int width, int height, char *serialized_matrix);
 void draw_entire_matrix(window_data *data);
 void print_window_matrix(window_matrix *matrix);
-void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, char ch);
+void window_matrix_remove_char_from_stack(window_data *data, int x, int y, char ch);
+void track_cell_update(window_data *data, int cell_index);
+void update_matrix_cells(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells);
 layer_cell *get_cell(window_matrix *matrix, int x, int y);
 
 #endif

@@ -254,7 +254,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         for (int i = 0; i < num_roaches; i++)
         {
             // Remove the roach from the stack
-            window_matrix_remove_char_from_stack(lizard_payload->game_window->matrix, *new_x, *new_y, roaches[i]);
+            window_matrix_remove_char_from_stack(lizard_payload->game_window, *new_x, *new_y, roaches[i]);
 
             // Mark the roach as eaten
             lizard_payload->roaches[roaches_positions[i]].is_eaten = 1;
