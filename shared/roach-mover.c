@@ -51,24 +51,21 @@ void process_roach_message(roach_mover *roach_payload)
 }
 
 /**
- * @brief - Proccess a connection to the server
+ * @brief - Proccess a roach connection to the server
  *
  * @param roach_payload - Pointer to the roach mover
  */
 void process_roach_connect(roach_mover *roach_payload)
 {
-    int server_reply = 0;
     int new_roach_id;
 
-    // If there are available slots, add the roach to the array
+    // If there are not available slots, refuse to add roach
     if (*(roach_payload->slot_roaches) <= 0)
     {
-        server_reply = -1;
-        // Reply indicating failure adding the roach due to lack of slots
+        new_roach_id = -1;
         if (roach_payload->should_use_responder)
-        {
-            zmq_send(roach_payload->responder, &server_reply, sizeof(int), 0);
-        }
+            // TODO: ADD PROTO ENCODERs
+            zmq_send(roach_payload->responder, &new_roach_id, sizeof(int), 0);
 
         return;
     }
@@ -95,7 +92,7 @@ void process_roach_connect(roach_mover *roach_payload)
 
         // Get the stack info of the new position
         cell = get_cell(roach_payload->game_window->matrix, new_x, new_y);
-    } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH);
+    } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH || cell->stack[cell->top].client_id == WASP);
 
     // Once the position is valid, update the roach position
     roach_payload->roaches[new_roach_id].x = new_x;
@@ -106,9 +103,8 @@ void process_roach_connect(roach_mover *roach_payload)
 
     // Reply indicating position of the roach in the array
     if (roach_payload->should_use_responder)
-    {
+        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &new_roach_id, sizeof(int), 0);
-    }
 }
 
 /**
@@ -209,22 +205,21 @@ void process_roach_movement(roach_mover *roach_payload)
     int new_y;
 
     if (calculate_roach_movement(roach_payload, &new_x, &new_y))
-    {
         roach_move(roach_payload, new_x, new_y, roach_id);
-    }
 
     // Reply indicating success moving the roach
     if (roach_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 }
 
 /**
- * @brief - Erase and Draw the roach in the new position
+ * @brief - Erase and draw the roach in the new position
  *
  * @param roach_payload - Pointer to the roach mover
+ * @param roach_id - Roach id
  * @param new_x - New x position
  * @param new_y - New y position
- * @param roach_id - Roach id
  */
 void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id)
 {
@@ -240,7 +235,7 @@ void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id)
 }
 
 /**
- * @brief - Process a disconnection
+ * @brief - Disconnect a roach from the server
  *
  * @param roach_payload - Pointer to the roach mover
  */
@@ -252,6 +247,7 @@ void process_roach_disconnect(roach_mover *roach_payload)
     window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
 
     if (roach_payload->should_use_responder)
+        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 
     (*(roach_payload->num_roaches))--;
@@ -331,7 +327,7 @@ void deserialize_roach_mover(roach_mover *roach_payload, char *buffer)
 
     // Allocate memory for roaches array
     int num_roaches = *(roach_payload->num_roaches);
-    roach_payload->roaches = malloc(sizeof(roach) * MAX_ROACHES_ALLOWED);
+    roach_payload->roaches = malloc(sizeof(roach) * MAX_SLOTS_ALLOWED);
     if (!roach_payload->roaches)
     {
         free(roach_payload->num_roaches);

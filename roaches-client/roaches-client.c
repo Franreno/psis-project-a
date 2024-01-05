@@ -1,4 +1,5 @@
 #include "default_consts.h"
+#include "proto-encoder.h"
 
 volatile sig_atomic_t stop = 0;
 
@@ -74,7 +75,29 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
         send_message->value = roaches[i];
 
         // Send message to server connecting a roach
-        zmq_send(requester, send_message, sizeof(message_to_server), 0);
+        // ------ START PROTO ENCODER ------
+
+        // Convert MessageToServer to MessageToServerProto
+        MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(send_message_proto);
+
+        message_to_server_to_proto_message_to_server(send_message_proto, send_message);
+
+        // Serialize MessageToServerProto
+        size_t send_message_proto_size = message_to_server_proto__get_packed_size(send_message_proto);
+
+        void *send_message_proto_buffer = malloc(send_message_proto_size);
+
+        message_to_server_proto__pack(send_message_proto, send_message_proto_buffer);
+
+        // Send serialized MessageToServerProto
+        zmq_send(requester, send_message_proto_buffer, send_message_proto_size, 0);
+
+        // Free memory
+        free(send_message_proto_buffer);
+        message_to_server_proto__free_unpacked(send_message_proto, NULL);
+
+        // ------ END PROTO ENCODER ------
         printf("Attempting to connect roach with score: %d\n", roaches[i]);
 
         // Server replies with either failure or the assigned roach id
@@ -130,7 +153,28 @@ int move_roaches(int num_roaches, int *roaches, void *requester, message_to_serv
                 send_message->direction = rand() % 4;
 
                 // Send roach movement message to server
-                zmq_send(requester, send_message, sizeof(message_to_server), 0);
+
+                // ------ START PROTO ENCODER ------
+
+                // Convert MessageToServer to MessageToServerProto
+                MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
+                message_to_server_proto__init(send_message_proto);
+
+                message_to_server_to_proto_message_to_server(send_message_proto, send_message);
+
+                // Serialize MessageToServerProto
+                size_t send_message_proto_size = message_to_server_proto__get_packed_size(send_message_proto);
+
+                void *send_message_proto_buffer = malloc(send_message_proto_size);
+
+                message_to_server_proto__pack(send_message_proto, send_message_proto_buffer);
+
+                // Send serialized MessageToServerProto
+                zmq_send(requester, send_message_proto_buffer, send_message_proto_size, 0);
+
+                // Free memory
+                free(send_message_proto_buffer);
+                message_to_server_proto__free_unpacked(send_message_proto, NULL);
 
                 // Server replies with failure if roaches should disconnect
                 zmq_recv(requester, &server_reply, sizeof(int), 0);
@@ -168,7 +212,28 @@ int disconnect_roaches(int num_roaches, int *roaches, void *requester, message_t
     for (int i = 0; i < num_roaches; i++)
     {
         send_message->value = roaches[i];
-        zmq_send(requester, send_message, sizeof(message_to_server), 0);
+        // ------ START PROTO ENCODER ------
+
+        // Convert MessageToServer to MessageToServerProto
+
+        MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(send_message_proto);
+
+        message_to_server_to_proto_message_to_server(send_message_proto, send_message);
+
+        // Serialize MessageToServerProto
+        size_t send_message_proto_size = message_to_server_proto__get_packed_size(send_message_proto);
+
+        void *send_message_proto_buffer = malloc(send_message_proto_size);
+
+        message_to_server_proto__pack(send_message_proto, send_message_proto_buffer);
+
+        // Send serialized MessageToServerProto
+        zmq_send(requester, send_message_proto_buffer, send_message_proto_size, 0);
+
+        // Free memory
+        free(send_message_proto_buffer);
+        message_to_server_proto__free_unpacked(send_message_proto, NULL);
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply != 0)
         {

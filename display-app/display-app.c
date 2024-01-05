@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
     message_to_server send_message;
     send_message.client_id = DISPLAY_APP;
     send_message.type = CONNECT;
+    // TODO: ADD PROTO ENCODER
     zmq_send(requester, &send_message, sizeof(message_to_server), 0);
 
     // ---------- START RECEIVE INITAL DATA FROM SERVER ----------
@@ -220,7 +221,7 @@ int main(int argc, char *argv[])
     roach_payload->should_use_responder = 0;
 
     // Create dummy pointer to eaten roaches
-    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_ROACHES_ALLOWED);
+    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_SLOTS_ALLOWED);
     int eaten_roaches_count = 0;
 
     roach_payload->eaten_roaches = eaten_roaches;
