@@ -98,8 +98,10 @@ void init_window_matrix(window_matrix *matrix, int width, int height)
 int get_char_priority(char ch)
 {
     if (isalpha(ch))
-        return 3;
+        return 4;
     if (isdigit(ch))
+        return 3;
+    if (ch == '#')
         return 2;
     if (ch == '.' || ch == '*')
         return 1;
