@@ -79,6 +79,8 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
 
         // Convert MessageToServer to MessageToServerProto
         MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(send_message_proto);
+
         message_to_server_to_proto_message_to_server(send_message_proto, send_message);
 
         // Serialize MessageToServerProto
@@ -156,6 +158,7 @@ int move_roaches(int num_roaches, int *roaches, void *requester, message_to_serv
 
                 // Convert MessageToServer to MessageToServerProto
                 MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
+                message_to_server_proto__init(send_message_proto);
 
                 message_to_server_to_proto_message_to_server(send_message_proto, send_message);
 
@@ -214,6 +217,8 @@ int disconnect_roaches(int num_roaches, int *roaches, void *requester, message_t
         // Convert MessageToServer to MessageToServerProto
 
         MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(send_message_proto);
+
         message_to_server_to_proto_message_to_server(send_message_proto, send_message);
 
         // Serialize MessageToServerProto

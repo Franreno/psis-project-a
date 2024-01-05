@@ -138,7 +138,7 @@ void proto_message_to_server_to_message_to_server(MessageToServerProto *proto, m
     message_to_server->client_id = proto->client_id;
     message_to_server->type = proto->type;
     message_to_server->value = proto->value;
-    proto_direction_to_direction_t(proto->direction, &message_to_server->direction);
+    proto_direction_to_direction_t(&proto->direction, &message_to_server->direction);
     message_to_server->message_accepted = proto->message_accepted;
 }
 
@@ -148,7 +148,7 @@ void message_to_server_to_proto_message_to_server(MessageToServerProto *proto, m
     proto->client_id = message_to_server->client_id;
     proto->type = message_to_server->type;
     proto->value = message_to_server->value;
-    direction_t_to_proto_direction(proto->direction, &message_to_server->direction);
+    direction_t_to_proto_direction(&proto->direction, &message_to_server->direction);
     proto->message_accepted = message_to_server->message_accepted;
 }
 
@@ -159,7 +159,7 @@ void proto_lizard_to_lizard(LizardProto *proto, lizard *lizard)
     lizard->x = proto->x;
     lizard->y = proto->y;
     lizard->score = proto->score;
-    proto_direction_to_direction_t(proto->previous_direction, &lizard->previous_direction);
+    proto_direction_to_direction_t(&proto->previous_direction, &lizard->previous_direction);
     lizard->is_winner = proto->is_winner;
 }
 
@@ -170,7 +170,7 @@ void lizard_to_proto_lizard(LizardProto *proto, lizard *lizard)
     proto->x = lizard->x;
     proto->y = lizard->y;
     proto->score = lizard->score;
-    direction_t_to_proto_direction(proto->previous_direction, &lizard->previous_direction);
+    direction_t_to_proto_direction(&proto->previous_direction, &lizard->previous_direction);
     proto->is_winner = lizard->is_winner;
 }
 
@@ -218,7 +218,7 @@ void proto_field_update_movement_to_field_update_movement(FieldUpdateMovementPro
     proto_message_to_server_to_message_to_server(proto->message, &field_update_movement->message);
     field_update_movement->new_x = proto->new_x;
     field_update_movement->new_y = proto->new_y;
-    proto_direction_to_direction_t(proto->prev_direction, &field_update_movement->prev_direction);
+    proto_direction_to_direction_t(&proto->prev_direction, &field_update_movement->prev_direction);
     field_update_movement->is_eaten = proto->is_eaten;
 }
 
@@ -230,7 +230,7 @@ void field_update_movement_to_proto_field_update_movement(FieldUpdateMovementPro
     message_to_server_to_proto_message_to_server(proto->message, &field_update_movement->message);
     proto->new_x = field_update_movement->new_x;
     proto->new_y = field_update_movement->new_y;
-    direction_t_to_proto_direction(proto->prev_direction, &field_update_movement->prev_direction);
+    direction_t_to_proto_direction(&proto->prev_direction, &field_update_movement->prev_direction);
     proto->is_eaten = field_update_movement->is_eaten;
 }
 

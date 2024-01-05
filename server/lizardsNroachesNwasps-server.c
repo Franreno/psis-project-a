@@ -4,6 +4,7 @@
 #include "lizard-mover.h"
 #include "logger.h"
 #include "window.h"
+#include "proto-encoder.h"
 
 /**
  * @brief Print the constants the server is running with
@@ -195,6 +196,11 @@ void publish_movement(void *publisher, message_to_server recv_message, roach_mov
 
     // TODO: ADD PROTO ENCODER
     zmq_send(publisher, "field_update_movement", strlen("field_update_movement"), ZMQ_SNDMORE);
+
+    // --- Start of proto encoding ---
+
+    // Create proto message
+
     zmq_send(publisher, &field_update_message, sizeof(field_update_message), 0);
 }
 
@@ -404,10 +410,41 @@ int main(int argc, char *argv[])
     lizard_payload->eaten_roaches = eaten_roaches;
     lizard_payload->amount_eaten_roaches = &eaten_roaches_count;
 
+    zmq_msg_t message;
+
     while (1)
     {
         // Receive message from one of the clients
-        zmq_recv(responder, &recv_message, sizeof(message_to_server), 0);
+        zmq_msg_init(&message);
+        // Receive a message part from the socket
+        if (zmq_msg_recv(&message, responder, 0) == -1)
+        {
+            // Handle error - for example, log and break/continue
+            log_write("Error receiving message: %s\n", zmq_strerror(zmq_errno()));
+            zmq_msg_close(&message);
+            exit(EXIT_FAILURE);
+        }
+        // Get the size of the received message
+        size_t msg_size = zmq_msg_size(&message);
+        void *msg_data = zmq_msg_data(&message);
+
+        // Unpack the Protobuf message
+        MessageToServerProto *msg = message_to_server_proto__unpack(NULL, msg_size, msg_data);
+        if (msg == NULL)
+        {
+            // Handle error - for example, log and continue
+            log_write("Error unpacking received message\n");
+            zmq_msg_close(&message);
+            exit(EXIT_FAILURE);
+        }
+
+        // Convert the message to the server to the message to the server
+        proto_message_to_server_to_message_to_server(msg, &recv_message);
+
+        // Free the message to the server proto
+        message_to_server_proto__free_unpacked(msg, NULL);
+        zmq_msg_close(&message);
+
         log_write("Received message from client %d\n", recv_message.client_id);
 
         // Respawn the eaten roaches

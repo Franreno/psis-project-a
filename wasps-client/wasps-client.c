@@ -1,4 +1,6 @@
 #include "default_consts.h"
+#include "proto-encoder.h"
+#include "server_messages.pb-c.h"
 
 volatile sig_atomic_t stop = 0;
 
@@ -70,8 +72,32 @@ int generate_and_connect_wasps(int num_wasps, int *wasps, void *requester, messa
     for (int i = 0; i < num_wasps; i++)
     {
         // Send message to server connecting a wasp
-        // TODO: ADD PROTO ENCODER
-        zmq_send(requester, send_message, sizeof(message_to_server), 0);
+
+        // --- Start of proto encoder ---
+        MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(message_to_server_proto);
+
+        // Convert message_to_server to proto
+        message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
+
+        // Get size of serialized proto
+        size_t proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
+
+        // Allocate memory to store serialized proto
+        void *serialized_proto = malloc(proto_size);
+
+        // Serialize proto
+        message_to_server_proto__pack(message_to_server_proto, serialized_proto);
+
+        // Send serialized proto
+        zmq_send(requester, serialized_proto, proto_size, 0);
+
+        // Free memory
+        free(serialized_proto);
+        message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
+
+        // --- End of proto encoder ---
+
         printf("Attempting to connect wasp\n");
 
         // Server replies with either failure or the assigned wasp id
@@ -127,8 +153,30 @@ int move_wasps(int num_wasps, int *wasps, void *requester, message_to_server *se
                 send_message->direction = rand() % 4;
 
                 // Send wasp movement message to server
-                // TODO: ADD PROTO ENCODER
-                zmq_send(requester, send_message, sizeof(message_to_server), 0);
+                // --- Start of proto encoder ---
+                MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
+                message_to_server_proto__init(message_to_server_proto);
+
+                // Convert message_to_server to proto
+                message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
+
+                // Get size of serialized proto
+                size_t proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
+
+                // Allocate memory to store serialized proto
+                void *serialized_proto = malloc(proto_size);
+
+                // Serialize proto
+                message_to_server_proto__pack(message_to_server_proto, serialized_proto);
+
+                // Send serialized proto
+                zmq_send(requester, serialized_proto, proto_size, 0);
+
+                // Free memory
+                free(serialized_proto);
+                message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
+
+                // --- End of proto encoder ---
 
                 // Server replies with failure if wasp should disconnect
                 zmq_recv(requester, &server_reply, sizeof(int), 0);
@@ -166,8 +214,31 @@ int disconnect_wasps(int num_wasps, int *wasps, void *requester, message_to_serv
     for (int i = 0; i < num_wasps; i++)
     {
         send_message->value = wasps[i];
-        // TODO: ADD PROTO ENCODER
-        zmq_send(requester, send_message, sizeof(message_to_server), 0);
+        // --- Start of proto encoder ---
+
+        MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
+        message_to_server_proto__init(message_to_server_proto);
+
+        // Convert message_to_server to proto
+        message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
+
+        // Get size of serialized proto
+        size_t proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
+
+        // Allocate memory to store serialized proto
+        void *serialized_proto = malloc(proto_size);
+
+        // Serialize proto
+        message_to_server_proto__pack(message_to_server_proto, serialized_proto);
+
+        // Send serialized proto
+        zmq_send(requester, serialized_proto, proto_size, 0);
+
+        // Free memory
+        free(serialized_proto);
+        message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
+
+        // --- End of proto encoder ---
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply != 0)
         {
