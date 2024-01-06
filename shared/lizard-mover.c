@@ -72,7 +72,7 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     // If there is an empty slot, add the lizard to the array on that slot, if not, add after the last lizard
     for (int i = 0; i < MAX_LIZARDS_ALLOWED; i++)
     {
-        if (lizard_payload->lizards[i].ch == -1)
+        if (lizard_payload->lizards[i].ch == (char)-1)
         {
             new_lizard_id = i;
             break;
@@ -374,7 +374,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     }
 
     // Verify if the lizard is still in use
-    if (lizard_payload->lizards[lizard_id].ch == -1)
+    if (lizard_payload->lizards[lizard_id].ch == (char)-1)
     {
         if (lizard_payload->should_use_responder)
             zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
@@ -384,7 +384,7 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 
     // Update the last message time
     lizard_payload->lizards[lizard_id].last_message_time = time(NULL);
-    
+
     // If the lizard movement is calculated as valid, move the lizard
     if (calculate_lizard_movement(lizard_payload, &new_x, &new_y))
         lizard_move(lizard_payload, lizard_id, new_x, new_y);
@@ -467,7 +467,7 @@ void process_lizard_disconnect(lizard_mover *lizard_payload)
     }
 
     // Verify if the lizard was already disconnected
-    if (lizard_payload->lizards[lizard_id].ch == -1)
+    if (lizard_payload->lizards[lizard_id].ch == (char)-1)
     {
         if (lizard_payload->should_use_responder)
             zmq_send(lizard_payload->responder, &success, sizeof(int), 0);

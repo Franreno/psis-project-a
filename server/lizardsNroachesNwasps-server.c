@@ -174,7 +174,7 @@ void remove_timeout_entities(lizard_mover *lizard_payload, roach_mover *roach_pa
     {
         lizard_id = i;
 
-        if (lizard_payload->lizards[lizard_id].ch == -1)
+        if (lizard_payload->lizards[lizard_id].ch == (char)-1)
             continue;
 
         if (difftime(current_time, lizard_payload->lizards[lizard_id].last_message_time) >= CLIENT_TIMEOUT_SECONDS)
@@ -201,7 +201,7 @@ void remove_timeout_entities(lizard_mover *lizard_payload, roach_mover *roach_pa
     {
         roach_id = i;
 
-        if (roach_payload->roaches[roach_id].ch == -1)
+        if (roach_payload->roaches[roach_id].ch == (char)-1)
             continue;
 
         if (difftime(current_time, roach_payload->roaches[roach_id].last_message_time) >= CLIENT_TIMEOUT_SECONDS)
@@ -227,7 +227,7 @@ void remove_timeout_entities(lizard_mover *lizard_payload, roach_mover *roach_pa
     {
         wasp_id = i;
 
-        if (wasp_payload->wasps[wasp_id].ch == -1)
+        if (wasp_payload->wasps[wasp_id].ch == (char)-1)
             continue;
 
         if (difftime(current_time, wasp_payload->wasps[wasp_id].last_message_time) >= CLIENT_TIMEOUT_SECONDS)
@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
         int i, j;
         for (i = 0, j = 0; j < num_lizards; i++)
         {
-            if (lizards[i].ch == -1)
+            if (lizards[i].ch == (char)-1)
                 continue;
 
             // j is the line number and only increments when a lizard is printed

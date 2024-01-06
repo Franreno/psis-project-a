@@ -70,9 +70,9 @@ void process_roach_connect(roach_mover *roach_payload)
     }
 
     // If there is an empty slot, add the roach to the array on that slot, if not, add after the last roach
-        for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
     {
-        if (roach_payload->roaches[i].ch == -1)
+        if (roach_payload->roaches[i].ch == (char)-1)
         {
             new_roach_id = i;
             break;
@@ -216,7 +216,7 @@ void process_roach_movement(roach_mover *roach_payload)
     int new_x;
     int new_y;
 
-        // Verify id the wasp id is within the range of the array
+    // Verify id the wasp id is within the range of the array
     if (roach_id < 0 || roach_id >= MAX_SLOTS_ALLOWED)
     {
         if (roach_payload->should_use_responder)
@@ -226,7 +226,7 @@ void process_roach_movement(roach_mover *roach_payload)
     }
 
     // Verify if the wasp is still in use
-    if (roach_payload->roaches[roach_id].ch == -1)
+    if (roach_payload->roaches[roach_id].ch == (char)-1)
     {
         if (roach_payload->should_use_responder)
             zmq_send(roach_payload->responder, &roach_not_found, sizeof(int), 0);
@@ -288,7 +288,7 @@ void process_roach_disconnect(roach_mover *roach_payload)
     }
 
     // Verify if the roach is still in use
-    if (roach_payload->roaches[roach_id].ch == -1)
+    if (roach_payload->roaches[roach_id].ch == (char)-1)
     {
         if (roach_payload->should_use_responder)
             zmq_send(roach_payload->responder, &success, sizeof(int), 0);

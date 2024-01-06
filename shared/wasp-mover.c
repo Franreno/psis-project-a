@@ -72,7 +72,7 @@ void process_wasp_connect(wasp_mover *wasp_payload)
     // If there is an empty slot, add the wasp to the array on that slot, if not, add after the last wasp
     for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
     {
-        if (wasp_payload->wasps[i].ch == -1)
+        if (wasp_payload->wasps[i].ch == (char)-1)
         {
             new_wasp_id = i;
             break;
@@ -207,7 +207,7 @@ void process_wasp_movement(wasp_mover *wasp_payload)
     }
 
     // Verify if the wasp is still in use
-    if (wasp_payload->wasps[wasp_id].ch == -1)
+    if (wasp_payload->wasps[wasp_id].ch == (char)-1)
     {
         if (wasp_payload->should_use_responder)
             zmq_send(wasp_payload->responder, &wasp_not_found, sizeof(int), 0);
@@ -269,7 +269,7 @@ void process_wasp_disconnect(wasp_mover *wasp_payload)
     }
 
     // Verify if the wasp is still in use
-    if (wasp_payload->wasps[wasp_id].ch == -1)
+    if (wasp_payload->wasps[wasp_id].ch == (char)-1)
     {
         if (wasp_payload->should_use_responder)
             zmq_send(wasp_payload->responder, &success, sizeof(int), 0);
