@@ -36,13 +36,13 @@ struct  _LayerCharProto
   /*
    * Assuming char is represented as a single-character string
    */
-  char *ch;
+  int32_t ch;
   int32_t client_id;
   int32_t position_in_array;
 };
 #define LAYER_CHAR_PROTO__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&layer_char_proto__descriptor) \
-    , (char *)protobuf_c_empty_string, 0, 0 }
+    , 0, 0, 0 }
 
 
 /*

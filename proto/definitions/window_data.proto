@@ -2,7 +2,7 @@ syntax = "proto3";
 
 // Message for layer_char
 message LayerCharProto {
-    string ch = 1;  // Assuming char is represented as a single-character string
+    int32 ch = 1;  // Assuming char is represented as a single-character string
     int32 client_id = 2;
     int32 position_in_array = 3;
 }

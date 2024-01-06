@@ -227,22 +227,29 @@ void send_updated_cells(void *publisher, window_data *game_window)
         field_update_message.updated_cells[i] = game_window->matrix->cells[game_window->updated_cell_indexes[i]];
     }
 
+    // Log the updated cells
+    log_write("Updated cells:\n");
+    for (int i = 0; i < game_window->size_of_updated_cells; i++)
+    {
+        log_write("Cell %d: %d %d\n", i, field_update_message.updated_cells[i].stack[0].ch, field_update_message.updated_cells[i].stack[0].client_id);
+    }
+
     // --- Start of proto encoding ---
-    // FieldUpdateProto *proto_field_update = malloc(sizeof(FieldUpdateProto));
-    // field_update_proto__init(proto_field_update);
+    FieldUpdateProto *proto_field_update = malloc(sizeof(FieldUpdateProto));
+    field_update_proto__init(proto_field_update);
 
-    // field_update_to_proto_field_update(proto_field_update, &field_update_message);
+    field_update_to_proto_field_update(proto_field_update, &field_update_message);
 
-    // size_t proto_field_update_size = field_update_proto__get_packed_size(proto_field_update);
-    // void *proto_field_update_buffer = malloc(proto_field_update_size);
+    size_t proto_field_update_size = field_update_proto__get_packed_size(proto_field_update);
+    void *proto_field_update_buffer = malloc(proto_field_update_size);
 
-    // field_update_proto__pack(proto_field_update, proto_field_update_buffer);
+    field_update_proto__pack(proto_field_update, proto_field_update_buffer);
 
     // --- End of proto encoding ---
 
     // Send the serialized data
     zmq_send(publisher, "field_update", strlen("field_update"), ZMQ_SNDMORE);
-    zmq_send(publisher, &field_update_message, sizeof(field_update), 0);
+    zmq_send(publisher, proto_field_update_buffer, proto_field_update_size, 0);
 
     // Free the allocated memory
     log_write("Freeing allocated memory\n");

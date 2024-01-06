@@ -258,12 +258,14 @@ void convert_layer_cell_proto_to_layer_cell(LayerCellProto *proto, layer_cell *c
     cell->top = proto->top;
     cell->capacity = proto->capacity;
     cell->stack = malloc(sizeof(layer_char) * cell->capacity);
-
-    for (int i = 0; i <= cell->top; i++)
+    if (cell->stack)
     {
-        cell->stack[i].ch = proto->stack[i]->ch[0]; // Assuming ch is a string in Proto and a char in C
-        cell->stack[i].client_id = proto->stack[i]->client_id;
-        cell->stack[i].position_in_array = proto->stack[i]->position_in_array;
+        for (int i = 0; i <= cell->top; i++)
+        {
+            cell->stack[i].ch = (char)proto->stack[i]->ch;
+            cell->stack[i].client_id = proto->stack[i]->client_id;
+            cell->stack[i].position_in_array = proto->stack[i]->position_in_array;
+        }
     }
 }
 
@@ -272,14 +274,18 @@ void convert_layer_cell_to_layer_cell_proto(LayerCellProto *proto, layer_cell *c
 {
     proto->top = cell->top;
     proto->capacity = cell->capacity;
-    proto->stack = malloc(sizeof(LayerCharProto *) * proto->capacity);
 
-    for (int i = 0; i <= proto->top; i++)
+    proto->n_stack = cell->top + 1;
+    proto->stack = malloc(sizeof(LayerCharProto *) * proto->n_stack);
+
+    for (size_t i = 0; i < proto->n_stack; i++)
     {
         proto->stack[i] = malloc(sizeof(LayerCharProto));
         layer_char_proto__init(proto->stack[i]);
-        proto->stack[i]->ch = malloc(sizeof(char));
-        proto->stack[i]->ch[0] = cell->stack[i].ch;
+
+        // Assuming ch is a single character. If it's a string, allocate appropriately.
+        proto->stack[i]->ch = (int32_t)cell->stack[i].ch;
+
         proto->stack[i]->client_id = cell->stack[i].client_id;
         proto->stack[i]->position_in_array = cell->stack[i].position_in_array;
     }
@@ -290,13 +296,28 @@ void proto_field_update_to_field_update(FieldUpdateProto *proto, field_update *f
 {
     field_update->size_of_updated_cells = proto->size_of_updated_cells;
     field_update->size_of_scores = proto->size_of_scores;
-    field_update->updated_cell_indexes = proto->updated_cell_indexes;
-    field_update->scores = proto->scores;
 
-    field_update->updated_cells = malloc(sizeof(layer_cell) * field_update->size_of_updated_cells);
-    for (int i = 0; i < field_update->size_of_updated_cells; i++)
+    field_update->updated_cell_indexes = (int *)malloc(field_update->size_of_updated_cells * sizeof(int));
+    if (field_update->updated_cell_indexes)
     {
-        convert_layer_cell_proto_to_layer_cell(proto->updated_cells[i], &field_update->updated_cells[i]);
+        memcpy(field_update->updated_cell_indexes, proto->updated_cell_indexes, proto->size_of_updated_cells * sizeof(int));
+    }
+
+    // Allocate and copy for scores
+    field_update->scores = malloc(proto->size_of_scores * sizeof(int));
+    if (field_update->scores)
+    {
+        memcpy(field_update->scores, proto->scores, proto->size_of_scores * sizeof(int));
+    }
+
+    // Handle updated_cells conversion
+    field_update->updated_cells = malloc(sizeof(layer_cell) * field_update->size_of_updated_cells);
+    if (field_update->updated_cells)
+    {
+        for (int i = 0; i < field_update->size_of_updated_cells; i++)
+        {
+            convert_layer_cell_proto_to_layer_cell(proto->updated_cells[i], &field_update->updated_cells[i]);
+        }
     }
 }
 
@@ -305,11 +326,21 @@ void field_update_to_proto_field_update(FieldUpdateProto *proto, field_update *f
 {
     proto->size_of_updated_cells = field_update->size_of_updated_cells;
     proto->size_of_scores = field_update->size_of_scores;
-    proto->updated_cell_indexes = field_update->updated_cell_indexes;
-    proto->scores = field_update->scores;
+
+    // Allocate memory and copy for updated_cell_indexes
+    proto->n_updated_cell_indexes = field_update->size_of_updated_cells;
+    proto->updated_cell_indexes = malloc(proto->n_updated_cell_indexes * sizeof(int32_t));
+    memcpy(proto->updated_cell_indexes, field_update->updated_cell_indexes, proto->n_updated_cell_indexes * sizeof(int32_t));
+
+    // Allocate memory and copy for scores
+    proto->n_scores = field_update->size_of_scores;
+    proto->scores = malloc(proto->n_scores * sizeof(int32_t));
+    memcpy(proto->scores, field_update->scores, proto->n_scores * sizeof(int32_t));
+
     // Handle updated_cells conversion
-    proto->updated_cells = malloc(sizeof(LayerCellProto *) * field_update->size_of_updated_cells);
-    for (int i = 0; i < field_update->size_of_updated_cells; i++)
+    proto->n_updated_cells = field_update->size_of_updated_cells;
+    proto->updated_cells = malloc(sizeof(LayerCellProto *) * proto->n_updated_cells);
+    for (size_t i = 0; i < proto->n_updated_cells; i++)
     {
         proto->updated_cells[i] = malloc(sizeof(LayerCellProto));
         layer_cell_proto__init(proto->updated_cells[i]);

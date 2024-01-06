@@ -246,50 +246,67 @@ int main(int argc, char *argv[])
     roach_payload->lizards = lizard_payload->lizards;
     lizard_payload->roaches = roach_payload->roaches;
 
+    zmq_msg_t message;
     while (1)
     {
         // Receive the field update
         char *type = s_recv(subscriber);
-        // ---------- START PRINTING SCORES ----------
-        // Print the scores in the score window
-        int i, j;
-        for (i = 0, j = 0; j < *lizard_payload->num_lizards; i++)
-        {
-            if (lizard_payload->lizards[i].ch == -1)
-                continue;
-
-            // j is the line number and only increments when a lizard is printed
-            mvwprintw(score_window, j, 0, "Lizard id %c: Score %d", (char)lizard_payload->lizards[i].ch, lizard_payload->lizards[i].score);
-            j++;
-
-            // Clear the rest of the line
-            wclrtoeol(score_window);
-        }
-
-        // Clear the remaining lines
-        for (; j < MAX_LIZARDS_ALLOWED; j++)
-        {
-            wmove(score_window, j, 0);
-            wclrtoeol(score_window);
-        }
-
-        // Update the score window
-        wrefresh(score_window);
-
-        // ---------- END PRINTING SCORES ----------
 
         // ---------- START RECEIVE FIELD UPDATE FROM SERVER ----------
+        zmq_msg_init(&message);
+        if (zmq_msg_recv(&message, subscriber, 0) == -1)
+        {
+            printf("Error receiving message: %s\n", zmq_strerror(errno));
+            zmq_close(requester);
+            zmq_close(subscriber);
+            zmq_ctx_destroy(context);
+            exit(1);
+        }
 
-        // Buffer to hold the received data
-        field_update *field_update = malloc(sizeof(field_update));
-        zmq_recv(subscriber, field_update, sizeof(field_update), 0);
+        // Get the size of the received message
+        size_t size = zmq_msg_size(&message);
+        void *buffer = zmq_msg_data(&message);
+
+        // Deserialize the field update from the buffer
+        FieldUpdateProto *field_update_proto = field_update_proto__unpack(NULL, size, buffer);
+        if (field_update_proto == NULL)
+        {
+            printf("Error unpacking message\n");
+            zmq_close(requester);
+            zmq_close(subscriber);
+            zmq_ctx_destroy(context);
+            exit(1);
+        }
+        log_write("Field update received from server:\n");
+        log_write("Field update size: %d\n", field_update_proto->size_of_updated_cells);
+        log_write("Field update updated cell indexes: ");
+        for (int i = 0; i < field_update_proto->size_of_updated_cells; i++)
+        {
+            log_write("%d ", field_update_proto->updated_cell_indexes[i]);
+        }
+        log_write("Updated cells:\n");
+        for (int i = 0; i < field_update_proto->size_of_updated_cells; i++)
+        {
+            // only log cell index
+            log_write("Cell %d\n", i);
+            // log_write("Cell %d: %d %d\n", i, field_update_proto->updated_cells[i]->stack[0]->ch, field_update_proto->updated_cells[i]->stack[0]->client_id);
+        }
+
+        // Convert the field update proto to a field update
+        field_update *field_update_struct = malloc(sizeof(field_update));
+        log_write("Converting field update proto to field update\n");
+        proto_field_update_to_field_update(field_update_proto, field_update_struct);
+        log_write("Field update converted\n");
 
         // Update the matrix with the received field update
-        update_matrix_cells(game_window, field_update->updated_cells, field_update->updated_cell_indexes, field_update->size_of_updated_cells);
+        update_matrix_cells(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
 
         draw_entire_matrix(game_window);
-        // ---------- END RECEIVE FIELD UPDATE FROM SERVER ----------
+        //  ---------- END RECEIVE FIELD UPDATE FROM SERVER ----------
         free(type);
+        zmq_msg_close(&message);
+        field_update_proto__free_unpacked(field_update_proto, NULL);
+        free(field_update_struct);
     }
 
     endwin();
