@@ -71,38 +71,33 @@ int generate_and_connect_wasps(int num_wasps, int *wasps, void *requester, messa
     // For each wasp, send a connect message to the server and wait for a response
     for (int i = 0; i < num_wasps; i++)
     {
-        // Send message to server connecting a wasp
+        // Send message to server to connect a wasp
+        printf("Attempting to connect wasp\n");
 
-        // --- Start of proto encoder ---
+        // Start of proto encoder
         MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
         message_to_server_proto__init(message_to_server_proto);
 
-        // Convert message_to_server to proto
+        // Convert message_to_server to proto message_to_server
         message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
 
-        // Get size of serialized proto
+        // Get size of the serialized message
         size_t proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
 
-        // Allocate memory to store serialized proto
+        // Serialize the message
         void *serialized_proto = malloc(proto_size);
-
-        // Serialize proto
         message_to_server_proto__pack(message_to_server_proto, serialized_proto);
 
-        // Send serialized proto
+        // Send the message
         zmq_send(requester, serialized_proto, proto_size, 0);
 
-        // Free memory
+        // Free the serialized message
         free(serialized_proto);
         message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
 
-        // --- End of proto encoder ---
-
-        printf("Attempting to connect wasp\n");
-
         // Server replies with either failure or the assigned wasp id
         zmq_recv(requester, &server_reply, sizeof(int), 0);
-        if (server_reply == -1)
+        if (server_reply < 0)
         {
             printf("Failed to connect wasp! No more slots available\n");
             num_wasps = i;
@@ -152,37 +147,32 @@ int move_wasps(int num_wasps, int *wasps, void *requester, message_to_server *se
                 send_message->value = wasps[i];
                 send_message->direction = rand() % 4;
 
-                // Send wasp movement message to server
-                // --- Start of proto encoder ---
+                // Start of proto encoder
                 MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
                 message_to_server_proto__init(message_to_server_proto);
 
-                // Convert message_to_server to proto
+                // Convert message to server to proto message to server
                 message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
 
-                // Get size of serialized proto
+                // Get the size of the serialized message
                 size_t proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
 
-                // Allocate memory to store serialized proto
+                // Serialize the message
                 void *serialized_proto = malloc(proto_size);
-
-                // Serialize proto
                 message_to_server_proto__pack(message_to_server_proto, serialized_proto);
 
-                // Send serialized proto
+                // Send the message
                 zmq_send(requester, serialized_proto, proto_size, 0);
 
-                // Free memory
+                // Free the serialized message
                 free(serialized_proto);
                 message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
 
-                // --- End of proto encoder ---
-
                 // Server replies with failure if wasp should disconnect
                 zmq_recv(requester, &server_reply, sizeof(int), 0);
-                if (server_reply != 0)
+                if (server_reply == 404)
                 {
-                    printf("Server ordered wasps should stop and disconnect!\n");
+                    printf("Wasp could not be found in server!\n");
                     return -1;
                 }
             }
@@ -214,31 +204,29 @@ int disconnect_wasps(int num_wasps, int *wasps, void *requester, message_to_serv
     for (int i = 0; i < num_wasps; i++)
     {
         send_message->value = wasps[i];
-        // --- Start of proto encoder ---
 
+        // Start of proto encoder
         MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
         message_to_server_proto__init(message_to_server_proto);
 
-        // Convert message_to_server to proto
+        // Convert message_to_server to proto message_to_server
         message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
 
-        // Get size of serialized proto
+        // Get size of the serialized message
         size_t proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
 
-        // Allocate memory to store serialized proto
+        // Serialize the message
         void *serialized_proto = malloc(proto_size);
-
-        // Serialize proto
         message_to_server_proto__pack(message_to_server_proto, serialized_proto);
 
-        // Send serialized proto
+        // Send the message
         zmq_send(requester, serialized_proto, proto_size, 0);
 
-        // Free memory
+        // Free the serialized message
         free(serialized_proto);
         message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
 
-        // --- End of proto encoder ---
+        // Server replies with failure if wasp could not be disconnected
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply != 0)
         {

@@ -57,21 +57,29 @@ void process_roach_message(roach_mover *roach_payload)
  */
 void process_roach_connect(roach_mover *roach_payload)
 {
+    int no_slots = -1;
     int new_roach_id;
 
     // If there are not available slots, refuse to add roach
     if (*(roach_payload->slot_roaches) <= 0)
     {
-        new_roach_id = -1;
         if (roach_payload->should_use_responder)
-            // TODO: ADD PROTO ENCODERs
-            zmq_send(roach_payload->responder, &new_roach_id, sizeof(int), 0);
+            zmq_send(roach_payload->responder, &no_slots, sizeof(int), 0);
 
         return;
     }
 
-    // Get the id of the new roach
-    new_roach_id = *(roach_payload->num_roaches);
+    // If there is an empty slot, add the roach to the array on that slot, if not, add after the last roach
+        for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    {
+        if (roach_payload->roaches[i].ch == -1)
+        {
+            new_roach_id = i;
+            break;
+        }
+        else
+            new_roach_id = *(roach_payload->num_roaches);
+    }
 
     // Increment the number of roaches and decrement the available slots
     (*(roach_payload->num_roaches))++;
@@ -79,6 +87,9 @@ void process_roach_connect(roach_mover *roach_payload)
 
     // Initialize the roach
     roach_payload->roaches[new_roach_id].ch = roach_payload->recv_message->value;
+    roach_payload->roaches[new_roach_id].is_eaten = 0;
+    roach_payload->roaches[new_roach_id].timestamp = 0;
+    roach_payload->roaches[new_roach_id].last_message_time = time(NULL);
 
     int new_x;
     int new_y;
@@ -103,7 +114,6 @@ void process_roach_connect(roach_mover *roach_payload)
 
     // Reply indicating position of the roach in the array
     if (roach_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &new_roach_id, sizeof(int), 0);
 }
 
@@ -157,8 +167,8 @@ int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
     // Get the stack info of the new position
     layer_cell *cell = get_cell(roach_payload->game_window->matrix, *new_x, *new_y);
 
-    // Check the top element of the stack to see if it's a lizard, if it is don't move the roach
-    if (cell->top >= 0 && cell->stack[cell->top].client_id == LIZARD)
+    // Check the top element of the stack to see if it's a lizard or a wasp, if it is don't move the roach
+    if (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == WASP)
         return 0;
 
     // Otherwise, the roach can move to the new position
@@ -176,6 +186,7 @@ int calculate_roach_movement(roach_mover *roach_payload, int *new_x, int *new_y)
 int refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int new_y, char is_eaten)
 {
     int roach_id = roach_payload->recv_message->value;
+
     // get the roach from the array
     roach *roach = &(roach_payload->roaches[roach_id]);
 
@@ -199,17 +210,39 @@ int refresh_eaten_roach_for_display(roach_mover *roach_payload, int new_x, int n
  */
 void process_roach_movement(roach_mover *roach_payload)
 {
-    int success = 0;
     int roach_id = roach_payload->recv_message->value;
+    int roach_not_found = 404;
+    int success = 0;
     int new_x;
     int new_y;
 
+        // Verify id the wasp id is within the range of the array
+    if (roach_id < 0 || roach_id >= MAX_SLOTS_ALLOWED)
+    {
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &roach_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Verify if the wasp is still in use
+    if (roach_payload->roaches[roach_id].ch == -1)
+    {
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &roach_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Update the last message time
+    roach_payload->roaches[roach_id].last_message_time = time(NULL);
+
+    // If the roach movement is calculated as valid, move the roach
     if (calculate_roach_movement(roach_payload, &new_x, &new_y))
         roach_move(roach_payload, new_x, new_y, roach_id);
 
     // Reply indicating success moving the roach
     if (roach_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 }
 
@@ -242,12 +275,39 @@ void roach_move(roach_mover *roach_payload, int new_x, int new_y, int roach_id)
 void process_roach_disconnect(roach_mover *roach_payload)
 {
     int success = 0;
+    int wasp_not_found = 404;
     int roach_id = roach_payload->recv_message->value;
 
+    // Verify if the roach id is within the range of the array
+    if (roach_id < 0 || roach_id >= MAX_SLOTS_ALLOWED)
+    {
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &wasp_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Verify if the roach is still in use
+    if (roach_payload->roaches[roach_id].ch == -1)
+    {
+        if (roach_payload->should_use_responder)
+            zmq_send(roach_payload->responder, &success, sizeof(int), 0);
+
+        return;
+    }
+
+    // Erase the roach from the screen
     window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
 
+    // Set the roach character to -1 to indicate it's not in use
+    roach_payload->roaches[roach_id].ch = -1;
+    roach_payload->roaches[roach_id].x = -1;
+    roach_payload->roaches[roach_id].y = -1;
+    roach_payload->roaches[roach_id].is_eaten = -1;
+    roach_payload->roaches[roach_id].timestamp = -1;
+    roach_payload->roaches[roach_id].last_message_time = -1;
+
     if (roach_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(roach_payload->responder, &success, sizeof(int), 0);
 
     (*(roach_payload->num_roaches))--;

@@ -55,11 +55,10 @@ int connect_lizard(void *requester, message_to_server *send_message)
     send_message->type = CONNECT;
     send_message->value = CONNECT;
 
-    // Send a connect message to the server and wait for a response
+    // Send a message to the server to connect a lizard
     printf("Attempting to connect lizard");
 
-    // ------ START PROTO ENCODER ------
-    // Create a new message to server
+    // Start of proto encoder
     MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
     message_to_server_proto__init(message_to_server_proto);
 
@@ -79,7 +78,6 @@ int connect_lizard(void *requester, message_to_server *send_message)
     // Free the serialized message
     free(message_to_server_proto_buffer);
     message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
-    // ------ END PROTO ENCODER ------
 
     // Server replies with either failure or the assigned lizard id
     zmq_recv(requester, &lizard_id, sizeof(int), 0);
@@ -148,10 +146,7 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
             continue;
         }
 
-        // Send lizard movement message to server
-
-        // ------ START PROTO ENCODER ------
-        // Create a new message to server
+        // Start of proto encoder
         MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
         message_to_server_proto__init(message_to_server_proto);
 
@@ -171,15 +166,14 @@ int move_lizard(int lizard_id, void *requester, message_to_server *send_message)
         // Free the serialized message
         free(message_to_server_proto_buffer);
         message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
-        // ------ END PROTO ENCODER ------
 
         // Server replies with failure if Lizard should disconnect
         zmq_recv(requester, &server_reply, sizeof(int), 0);
-        if (server_reply < -1000)
+        if (server_reply == 404)
         {
             // End ncurses mode and print error message
             endwin();
-            printf("Server ordered lizard should stop and disconnect!\n");
+            printf("Lizard could not be found in server!\n");
             return -1;
         }
 
@@ -221,9 +215,7 @@ int disconnect_lizard(int lizard_id, void *requester, message_to_server *send_me
     send_message->type = DISCONNECT;
     send_message->value = lizard_id;
 
-    // Send lizard disconnect message to server
-    // ------ START PROTO ENCODER ------
-    // Convert message to server to proto message to server
+    // Start of proto encoder
     MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
     message_to_server_proto__init(message_to_server_proto);
 
@@ -244,7 +236,7 @@ int disconnect_lizard(int lizard_id, void *requester, message_to_server *send_me
     free(message_to_server_proto_buffer);
     message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
 
-    // ------ END PROTO ENCODER ------
+    // Server replies with failure if Lizard could not be disconnected
     zmq_recv(requester, &server_reply, sizeof(int), 0);
     if (server_reply != 0)
     {

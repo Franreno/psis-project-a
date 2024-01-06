@@ -7,6 +7,7 @@
 #define DEFAULT_SERVER_ADDRESS "localhost"
 #define DEFAULT_SERVER_PORT "5555"
 #define WINDOW_SIZE 30
+#define CLIENT_TIMEOUT_SECONDS 30
 #define ROACH_MOVE_CHANCE 50
 #define WASP_MOVE_CHANCE 25
 #define ROACH_MOVE_DELAY 1000000
@@ -60,7 +61,6 @@ typedef struct message_to_server
     int type;              // 1 = connect, 2 = movement
     int value;             // usage depends on client_id and type
     direction_t direction; // direction of movement
-    char message_accepted; // 1 = message accepted, 0 = message rejected
 } message_to_server;
 
 typedef struct lizard
@@ -69,8 +69,9 @@ typedef struct lizard
     int x;
     int y;
     int score;
-    direction_t previous_direction;
     char is_winner;
+    direction_t previous_direction;
+    time_t last_message_time;
 } lizard;
 
 typedef struct roach
@@ -80,6 +81,7 @@ typedef struct roach
     int y;
     char is_eaten;
     time_t timestamp;
+    time_t last_message_time;
 } roach;
 
 typedef struct wasp
@@ -87,6 +89,7 @@ typedef struct wasp
     char ch;
     int x;
     int y;
+    time_t last_message_time;
 } wasp;
 
 typedef struct field_update_movement

@@ -139,7 +139,6 @@ void proto_message_to_server_to_message_to_server(MessageToServerProto *proto, m
     message_to_server->type = proto->type;
     message_to_server->value = proto->value;
     proto_direction_to_direction_t(&proto->direction, &message_to_server->direction);
-    message_to_server->message_accepted = proto->message_accepted;
 }
 
 // Convert MessageToServer to MessageToServerProto
@@ -149,7 +148,6 @@ void message_to_server_to_proto_message_to_server(MessageToServerProto *proto, m
     proto->type = message_to_server->type;
     proto->value = message_to_server->value;
     direction_t_to_proto_direction(&proto->direction, &message_to_server->direction);
-    proto->message_accepted = message_to_server->message_accepted;
 }
 
 // Convert LizardProto to Lizard

@@ -57,15 +57,14 @@ void process_lizard_message(lizard_mover *lizard_payload)
  */
 void process_lizard_connect(lizard_mover *lizard_payload)
 {
+    int no_slots = -1;
     int new_lizard_id;
 
     // If there are not available slots, refuse to add lizard
     if (*(lizard_payload->slot_lizards) <= 0)
     {
-        new_lizard_id = -1;
         if (lizard_payload->should_use_responder)
-            // TODO: ADD PROTO ENCODER
-            zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0);
+            zmq_send(lizard_payload->responder, &no_slots, sizeof(int), 0);
 
         return;
     }
@@ -88,9 +87,11 @@ void process_lizard_connect(lizard_mover *lizard_payload)
 
     // Initialize the lizard
     lizard_payload->lizards[new_lizard_id].ch = 'A' + new_lizard_id;
+    lizard_payload->lizards[new_lizard_id].score = 0;
+    lizard_payload->lizards[new_lizard_id].is_winner = 0;
+    lizard_payload->lizards[new_lizard_id].last_message_time = time(NULL);
     lizard_payload->lizards[new_lizard_id].previous_direction = rand() % 4;
     lizard_payload->recv_message->direction = lizard_payload->lizards[new_lizard_id].previous_direction;
-    lizard_payload->lizards[new_lizard_id].score = 0;
 
     int new_x;
     int new_y;
@@ -118,7 +119,6 @@ void process_lizard_connect(lizard_mover *lizard_payload)
 
     // Reply to lizard client indicating position of the new lizard in the array
     if (lizard_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0);
 }
 
@@ -360,21 +360,37 @@ void erase_lizard_tail(lizard_mover *lizard_payload, int lizard_id, direction_t 
 void process_lizard_movement(lizard_mover *lizard_payload)
 {
     int lizard_id = lizard_payload->recv_message->value;
+    int lizard_not_found = 404;
     int new_x;
     int new_y;
 
+    // Verify if the lizards id is within the range of the array
+    if (lizard_id < 0 || lizard_id >= MAX_LIZARDS_ALLOWED)
+    {
+        if (lizard_payload->should_use_responder)
+            zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Verify if the lizard is still in use
+    if (lizard_payload->lizards[lizard_id].ch == -1)
+    {
+        if (lizard_payload->should_use_responder)
+            zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Update the last message time
+    lizard_payload->lizards[lizard_id].last_message_time = time(NULL);
+    
     // If the lizard movement is calculated as valid, move the lizard
     if (calculate_lizard_movement(lizard_payload, &new_x, &new_y))
-    {
-        lizard_payload->recv_message->message_accepted = 1;
         lizard_move(lizard_payload, lizard_id, new_x, new_y);
-    }
-    else
-        lizard_payload->recv_message->message_accepted = 0;
 
     // Reply with the lizard score
     if (lizard_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(lizard_payload->responder, &lizard_payload->lizards[lizard_id].score, sizeof(int), 0);
 }
 
@@ -438,20 +454,40 @@ void lizard_move(lizard_mover *lizard_payload, int lizard_id, int new_x, int new
 void process_lizard_disconnect(lizard_mover *lizard_payload)
 {
     int success = 0;
+    int lizard_not_found = 404;
     int lizard_id = lizard_payload->recv_message->value;
+
+    // Verify if the lizards id is within the range of the array
+    if (lizard_id < 0 || lizard_id >= MAX_LIZARDS_ALLOWED)
+    {
+        if (lizard_payload->should_use_responder)
+            zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Verify if the lizard was already disconnected
+    if (lizard_payload->lizards[lizard_id].ch == -1)
+    {
+        if (lizard_payload->should_use_responder)
+            zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
+
+        return;
+    }
 
     // Erase the lizard from the screen
     lizard_erase(lizard_payload, lizard_id);
 
-    // Set the lizard character to -1 to indicate it's not in use
+    // Set the lizard character to -1 to indicate it's no longer in use
     lizard_payload->lizards[lizard_id].ch = -1;
     lizard_payload->lizards[lizard_id].x = -1;
     lizard_payload->lizards[lizard_id].y = -1;
-    lizard_payload->lizards[lizard_id].score = 0;
-    lizard_payload->lizards[lizard_id].is_winner = 0;
+    lizard_payload->lizards[lizard_id].score = -1;
+    lizard_payload->lizards[lizard_id].is_winner = -1;
+    lizard_payload->lizards[lizard_id].previous_direction = -1;
+    lizard_payload->lizards[lizard_id].last_message_time = -1;
 
     if (lizard_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
 
     (*(lizard_payload->num_lizards))--;

@@ -162,6 +162,91 @@ void respawn_eaten_roaches(roach_mover *roach_payload, roach **eaten_roaches, in
     }
 }
 
+void remove_timeout_entities(lizard_mover *lizard_payload, roach_mover *roach_payload, wasp_mover *wasp_payload)
+{
+    int lizard_id;
+    int roach_id;
+    int wasp_id;
+    time_t current_time = time(NULL);
+
+    // Remove the timed out lizards
+    for (int i = 0; i < MAX_LIZARDS_ALLOWED; i++)
+    {
+        lizard_id = i;
+
+        if (lizard_payload->lizards[lizard_id].ch == -1)
+            continue;
+
+        if (difftime(current_time, lizard_payload->lizards[lizard_id].last_message_time) >= CLIENT_TIMEOUT_SECONDS)
+        {
+            // Erase the lizard from the screen
+            lizard_erase(lizard_payload, i);
+
+            // Set the lizard character to -1 to indicate it's no longer in use
+            lizard_payload->lizards[lizard_id].ch = -1;
+            lizard_payload->lizards[lizard_id].x = -1;
+            lizard_payload->lizards[lizard_id].y = -1;
+            lizard_payload->lizards[lizard_id].score = -1;
+            lizard_payload->lizards[lizard_id].is_winner = -1;
+            lizard_payload->lizards[lizard_id].previous_direction = -1;
+            lizard_payload->lizards[lizard_id].last_message_time = -1;
+
+            (*(lizard_payload->num_lizards))--;
+            (*(lizard_payload->slot_lizards))++;
+        }
+    }
+
+    // Remove the timed out roaches
+    for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    {
+        roach_id = i;
+
+        if (roach_payload->roaches[roach_id].ch == -1)
+            continue;
+
+        if (difftime(current_time, roach_payload->roaches[roach_id].last_message_time) >= CLIENT_TIMEOUT_SECONDS)
+        {
+            // Erase the roach from the screen
+            window_erase(roach_payload->game_window, roach_payload->roaches[roach_id].x, roach_payload->roaches[roach_id].y, (roach_payload->roaches[roach_id].ch + '0') | A_BOLD);
+
+            // Set the roach character to -1 to indicate it's no longer in use
+            roach_payload->roaches[roach_id].ch = -1;
+            roach_payload->roaches[roach_id].x = -1;
+            roach_payload->roaches[roach_id].y = -1;
+            roach_payload->roaches[roach_id].is_eaten = -1;
+            roach_payload->roaches[roach_id].timestamp = -1;
+            roach_payload->roaches[roach_id].last_message_time = -1;
+
+            (*(roach_payload->num_roaches))--;
+            (*(roach_payload->slot_roaches))++;
+        }
+    }
+
+    // Remove the timed out wasps
+    for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    {
+        wasp_id = i;
+
+        if (wasp_payload->wasps[wasp_id].ch == -1)
+            continue;
+
+        if (difftime(current_time, wasp_payload->wasps[wasp_id].last_message_time) >= CLIENT_TIMEOUT_SECONDS)
+        {
+            // Erase the wasp from the screen
+            window_erase(wasp_payload->game_window, wasp_payload->wasps[wasp_id].x, wasp_payload->wasps[wasp_id].y, (wasp_payload->wasps[wasp_id].ch) | A_BOLD);
+
+            // Set the wasp character to -1 to indicate it's no longer in use
+            wasp_payload->wasps[wasp_id].ch = -1;
+            wasp_payload->wasps[wasp_id].x = -1;
+            wasp_payload->wasps[wasp_id].y = -1;
+            wasp_payload->wasps[wasp_id].last_message_time = -1;
+
+            (*(wasp_payload->num_wasps))--;
+            (*(wasp_payload->slot_wasps))++;
+        }
+    }
+}
+
 void send_updated_cells(void *publisher, window_data *game_window, lizard_mover *lizard_payload)
 {
 
@@ -282,17 +367,47 @@ int main(int argc, char *argv[])
     // Create a new window for the scores
     WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
 
-    // Initialize variables used for roach and wasp tracking
+    // Initialize variables used for entity tracking
     int num_wasps = 0;
     int num_roaches = 0;
+    int num_lizards = 0;
+    int slots_available = MAX_SLOTS_ALLOWED;
+    int slot_lizards = MAX_LIZARDS_ALLOWED;
     wasp wasps[MAX_SLOTS_ALLOWED];
     roach roaches[MAX_SLOTS_ALLOWED];
-    int slots_available = MAX_SLOTS_ALLOWED;
-
-    // Initialize variables used for lizard tracking
-    int num_lizards = 0;
-    int slot_lizards = MAX_LIZARDS_ALLOWED;
     lizard lizards[MAX_LIZARDS_ALLOWED];
+
+    // Initialize the wasps array
+    for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    {
+        wasps[i].ch = -1;
+        wasps[i].x = -1;
+        wasps[i].y = -1;
+        wasps[i].last_message_time = -1;
+    }
+
+    // Initialize the roaches array
+    for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    {
+        roaches[i].ch = -1;
+        roaches[i].x = -1;
+        roaches[i].y = -1;
+        roaches[i].is_eaten = -1;
+        roaches[i].timestamp = -1;
+        roaches[i].last_message_time = -1;
+    }
+
+    // Initialize the lizards array
+    for (int i = 0; i < MAX_LIZARDS_ALLOWED; i++)
+    {
+        lizards[i].ch = -1;
+        lizards[i].x = -1;
+        lizards[i].y = -1;
+        lizards[i].score = -1;
+        lizards[i].is_winner = -1;
+        lizards[i].previous_direction = -1;
+        lizards[i].last_message_time = -1;
+    }
 
     message_to_server recv_message;
 
@@ -328,6 +443,9 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+        // Remove the timed out entities
+        remove_timeout_entities(lizard_payload, roach_payload, wasp_payload);
+
         // Receive message from one of the clients
         zmq_msg_init(&message);
         // Receive a message part from the socket
@@ -388,8 +506,6 @@ int main(int argc, char *argv[])
 
         // Update the score window
         wrefresh(score_window);
-
-        recv_message.message_accepted = 1;
 
         switch (recv_message.client_id)
         {

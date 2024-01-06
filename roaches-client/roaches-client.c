@@ -74,35 +74,33 @@ int generate_and_connect_roaches(int num_roaches, int *roaches, void *requester,
         roaches[i] = rand() % MAX_ROACH_SCORE + 1;
         send_message->value = roaches[i];
 
-        // Send message to server connecting a roach
-        // ------ START PROTO ENCODER ------
+        // Send a message to the server to connect a roach
+        printf("Attempting to connect roach with score: %d\n", roaches[i]);
 
-        // Convert MessageToServer to MessageToServerProto
+        // Start of proto encoder
         MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
         message_to_server_proto__init(send_message_proto);
 
+        // Convert message to server to proto message to server
         message_to_server_to_proto_message_to_server(send_message_proto, send_message);
 
-        // Serialize MessageToServerProto
+        // Get the size of the serialized message
         size_t send_message_proto_size = message_to_server_proto__get_packed_size(send_message_proto);
 
+        // Serialize the message
         void *send_message_proto_buffer = malloc(send_message_proto_size);
-
         message_to_server_proto__pack(send_message_proto, send_message_proto_buffer);
 
-        // Send serialized MessageToServerProto
+        // Send the message
         zmq_send(requester, send_message_proto_buffer, send_message_proto_size, 0);
 
-        // Free memory
+        // Free the serialized message
         free(send_message_proto_buffer);
         message_to_server_proto__free_unpacked(send_message_proto, NULL);
 
-        // ------ END PROTO ENCODER ------
-        printf("Attempting to connect roach with score: %d\n", roaches[i]);
-
         // Server replies with either failure or the assigned roach id
         zmq_recv(requester, &server_reply, sizeof(int), 0);
-        if (server_reply == -1)
+        if (server_reply < 0)
         {
             printf("Failed to connect roach! No more slots available\n");
             num_roaches = i;
@@ -152,35 +150,32 @@ int move_roaches(int num_roaches, int *roaches, void *requester, message_to_serv
                 send_message->value = roaches[i];
                 send_message->direction = rand() % 4;
 
-                // Send roach movement message to server
-
-                // ------ START PROTO ENCODER ------
-
-                // Convert MessageToServer to MessageToServerProto
+                // Start of proto encoder
                 MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
                 message_to_server_proto__init(send_message_proto);
 
+                // Convert message to server to proto message to server
                 message_to_server_to_proto_message_to_server(send_message_proto, send_message);
 
-                // Serialize MessageToServerProto
+                // Get the size of the serialized message
                 size_t send_message_proto_size = message_to_server_proto__get_packed_size(send_message_proto);
 
+                // Serialize the message
                 void *send_message_proto_buffer = malloc(send_message_proto_size);
-
                 message_to_server_proto__pack(send_message_proto, send_message_proto_buffer);
 
-                // Send serialized MessageToServerProto
+                // Send the message
                 zmq_send(requester, send_message_proto_buffer, send_message_proto_size, 0);
 
-                // Free memory
+                // Free the serialized message
                 free(send_message_proto_buffer);
                 message_to_server_proto__free_unpacked(send_message_proto, NULL);
 
                 // Server replies with failure if roaches should disconnect
                 zmq_recv(requester, &server_reply, sizeof(int), 0);
-                if (server_reply != 0)
+                if (server_reply == 404)
                 {
-                    printf("Server ordered roaches should stop and disconnect!\n");
+                    printf("Roach could not be found in server!\n");
                     return -1;
                 }
             }
@@ -212,28 +207,29 @@ int disconnect_roaches(int num_roaches, int *roaches, void *requester, message_t
     for (int i = 0; i < num_roaches; i++)
     {
         send_message->value = roaches[i];
-        // ------ START PROTO ENCODER ------
 
-        // Convert MessageToServer to MessageToServerProto
-
+        // Start of proto encoder
         MessageToServerProto *send_message_proto = malloc(sizeof(MessageToServerProto));
         message_to_server_proto__init(send_message_proto);
 
+        // Convert message to server to proto message to server
         message_to_server_to_proto_message_to_server(send_message_proto, send_message);
 
-        // Serialize MessageToServerProto
+        // Get the size of the serialized message
         size_t send_message_proto_size = message_to_server_proto__get_packed_size(send_message_proto);
 
+        // Serialize the message
         void *send_message_proto_buffer = malloc(send_message_proto_size);
-
         message_to_server_proto__pack(send_message_proto, send_message_proto_buffer);
 
-        // Send serialized MessageToServerProto
+        // Send the message
         zmq_send(requester, send_message_proto_buffer, send_message_proto_size, 0);
 
-        // Free memory
+        // Free the serialized message
         free(send_message_proto_buffer);
         message_to_server_proto__free_unpacked(send_message_proto, NULL);
+
+        // Server replies with failure if roach could not be disconnected
         zmq_recv(requester, &server_reply, sizeof(int), 0);
         if (server_reply != 0)
         {

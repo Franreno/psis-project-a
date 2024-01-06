@@ -57,21 +57,29 @@ void process_wasp_message(wasp_mover *wasp_payload)
  */
 void process_wasp_connect(wasp_mover *wasp_payload)
 {
+    int no_slots = -1;
     int new_wasp_id;
 
     // If there are not available slots, refuse to add wasp
     if (*(wasp_payload->slot_wasps) <= 0)
     {
-        new_wasp_id = -1;
         if (wasp_payload->should_use_responder)
-            // TODO: ADD PROTO ENCODER
-            zmq_send(wasp_payload->responder, &new_wasp_id, sizeof(int), 0);
+            zmq_send(wasp_payload->responder, &no_slots, sizeof(int), 0);
 
         return;
     }
 
-    // Get the id of the new wasp
-    new_wasp_id = *(wasp_payload->num_wasps);
+    // If there is an empty slot, add the wasp to the array on that slot, if not, add after the last wasp
+    for (int i = 0; i < MAX_SLOTS_ALLOWED; i++)
+    {
+        if (wasp_payload->wasps[i].ch == -1)
+        {
+            new_wasp_id = i;
+            break;
+        }
+        else
+            new_wasp_id = *(wasp_payload->num_wasps);
+    }
 
     // Increment the number of wasps and decrement the available slots
     (*(wasp_payload->num_wasps))++;
@@ -79,6 +87,7 @@ void process_wasp_connect(wasp_mover *wasp_payload)
 
     // Initialize the wasp
     wasp_payload->wasps[new_wasp_id].ch = '#';
+    wasp_payload->wasps[new_wasp_id].last_message_time = time(NULL);
 
     int new_x;
     int new_y;
@@ -103,7 +112,6 @@ void process_wasp_connect(wasp_mover *wasp_payload)
 
     // Reply indicating position of the wasp in the array
     if (wasp_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(wasp_payload->responder, &new_wasp_id, sizeof(int), 0);
 }
 
@@ -183,17 +191,39 @@ int calculate_wasp_movement(wasp_mover *wasp_payload, int *new_x, int *new_y)
  */
 void process_wasp_movement(wasp_mover *wasp_payload)
 {
-    int success = 0;
     int wasp_id = wasp_payload->recv_message->value;
+    int wasp_not_found = 404;
+    int success = 0;
     int new_x;
     int new_y;
 
+    // Verify id the wasp id is within the range of the array
+    if (wasp_id < 0 || wasp_id >= MAX_SLOTS_ALLOWED)
+    {
+        if (wasp_payload->should_use_responder)
+            zmq_send(wasp_payload->responder, &wasp_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Verify if the wasp is still in use
+    if (wasp_payload->wasps[wasp_id].ch == -1)
+    {
+        if (wasp_payload->should_use_responder)
+            zmq_send(wasp_payload->responder, &wasp_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Update the last message time
+    wasp_payload->wasps[wasp_id].last_message_time = time(NULL);
+
+    // If the wasp movement is calculated as valid, move the wasp
     if (calculate_wasp_movement(wasp_payload, &new_x, &new_y))
         wasp_move(wasp_payload, new_x, new_y, wasp_id);
 
     // Reply indicating success moving the wasp
     if (wasp_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(wasp_payload->responder, &success, sizeof(int), 0);
 }
 
@@ -226,13 +256,37 @@ void wasp_move(wasp_mover *wasp_payload, int new_x, int new_y, int wasp_id)
 void process_wasp_disconnect(wasp_mover *wasp_payload)
 {
     int success = 0;
+    int wasp_not_found = 404;
     int wasp_id = wasp_payload->recv_message->value;
+
+    // Verify if the wasp id is within the range of the array
+    if (wasp_id < 0 || wasp_id >= MAX_SLOTS_ALLOWED)
+    {
+        if (wasp_payload->should_use_responder)
+            zmq_send(wasp_payload->responder, &wasp_not_found, sizeof(int), 0);
+
+        return;
+    }
+
+    // Verify if the wasp is still in use
+    if (wasp_payload->wasps[wasp_id].ch == -1)
+    {
+        if (wasp_payload->should_use_responder)
+            zmq_send(wasp_payload->responder, &success, sizeof(int), 0);
+
+        return;
+    }
 
     // Erase the wasp from the screen
     window_erase(wasp_payload->game_window, wasp_payload->wasps[wasp_id].x, wasp_payload->wasps[wasp_id].y, (wasp_payload->wasps[wasp_id].ch) | A_BOLD);
 
+    // Set the wasp character to -1 to indicate it's not in use
+    wasp_payload->wasps[wasp_id].ch = -1;
+    wasp_payload->wasps[wasp_id].x = -1;
+    wasp_payload->wasps[wasp_id].y = -1;
+    wasp_payload->wasps[wasp_id].last_message_time = -1;
+
     if (wasp_payload->should_use_responder)
-        // TODO: ADD PROTO ENCODER
         zmq_send(wasp_payload->responder, &success, sizeof(int), 0);
 
     (*(wasp_payload->num_wasps))--;
