@@ -313,10 +313,14 @@ void proto_field_update_to_field_update(FieldUpdateProto *proto, field_update *f
     }
 
     // Allocate and copy for scores
-    field_update->scores = malloc(proto->size_of_scores * sizeof(int));
+    field_update->scores = malloc(proto->size_of_scores * sizeof(scores_update));
     if (field_update->scores)
     {
-        memcpy(field_update->scores, proto->scores, proto->size_of_scores * sizeof(int));
+        for (int i = 0; i < proto->size_of_scores; i++)
+        {
+            field_update->scores[i].score = proto->scores[i]->score;
+            field_update->scores[i].ch = proto->scores[i]->ch;
+        }
     }
 
     // Handle updated_cells conversion
@@ -343,8 +347,14 @@ void field_update_to_proto_field_update(FieldUpdateProto *proto, field_update *f
 
     // Allocate memory and copy for scores
     proto->n_scores = field_update->size_of_scores;
-    proto->scores = malloc(proto->n_scores * sizeof(int32_t));
-    memcpy(proto->scores, field_update->scores, proto->n_scores * sizeof(int32_t));
+    proto->scores = malloc(proto->n_scores * sizeof(ScoresUpdateProto *));
+    for (size_t i = 0; i < proto->n_scores; i++)
+    {
+        proto->scores[i] = malloc(sizeof(ScoresUpdateProto));
+        scores_update_proto__init(proto->scores[i]);
+        proto->scores[i]->score = field_update->scores[i].score;
+        proto->scores[i]->ch = field_update->scores[i].ch;
+    }
 
     // Handle updated_cells conversion
     proto->n_updated_cells = field_update->size_of_updated_cells;

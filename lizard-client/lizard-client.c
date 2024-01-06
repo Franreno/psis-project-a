@@ -398,7 +398,7 @@ void *display_thread_function(void *arg)
         {
 
             // j is the line number and only increments when a lizard is printed
-            mvwprintw(score_window, j, 0, "Lizard: Score %d", field_update_struct->scores[i]);
+            mvwprintw(score_window, j, 0, "Lizard %c: Score %d", field_update_struct->scores[i].ch, field_update_struct->scores[i].score);
             j++;
 
             // Clear the rest of the line
@@ -523,7 +523,6 @@ int main(int argc, char *argv[])
 
     pthread_cancel(display_thread);
     endwin();
-    clrtoeol();
 
     // Close socket and destroy context
     zmq_close(requester);

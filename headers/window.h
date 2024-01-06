@@ -41,11 +41,17 @@ typedef struct window_data
     int size_of_updated_cells;
 } window_data;
 
+typedef struct scores_update
+{
+    int score;
+    char ch;
+} scores_update;
+
 typedef struct field_update
 {
     layer_cell *updated_cells;
     int *updated_cell_indexes;
-    int *scores;
+    scores_update *scores;
 
     int size_of_updated_cells;
     int size_of_scores;
