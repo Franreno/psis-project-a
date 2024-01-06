@@ -162,7 +162,7 @@ void respawn_eaten_roaches(roach_mover *roach_payload, roach **eaten_roaches, in
     }
 }
 
-void send_updated_cells(void *publisher, window_data *game_window)
+void send_updated_cells(void *publisher, window_data *game_window, lizard_mover *lizard_payload)
 {
 
     log_write("Sending updated cells to clients\n");
@@ -173,7 +173,6 @@ void send_updated_cells(void *publisher, window_data *game_window)
     field_update_message.size_of_updated_cells = game_window->size_of_updated_cells;
 
     // Copy the updated cells to a new array in the field update message
-
     // Allocate memory for the updated cells
     field_update_message.updated_cells = (layer_cell *)malloc(sizeof(layer_cell) * game_window->size_of_updated_cells);
 
@@ -181,6 +180,15 @@ void send_updated_cells(void *publisher, window_data *game_window)
     for (int i = 0; i < game_window->size_of_updated_cells; i++)
     {
         field_update_message.updated_cells[i] = game_window->matrix->cells[game_window->updated_cell_indexes[i]];
+    }
+
+    field_update_message.size_of_scores = *lizard_payload->num_lizards;
+    field_update_message.scores = (int *)malloc(sizeof(int) * field_update_message.size_of_scores);
+
+    // Copy the scores from the lizard mover to the field update message
+    for (int i = 0; i < field_update_message.size_of_scores; i++)
+    {
+        field_update_message.scores[i] = lizard_payload->lizards[i].score;
     }
 
     // --- Start of proto encoding ---
@@ -415,7 +423,7 @@ int main(int argc, char *argv[])
         {
             // Send the updated cells to the clients
             log_write("Sending updated cells to clients\n");
-            send_updated_cells(publisher, game_window);
+            send_updated_cells(publisher, game_window, lizard_payload);
             log_write("Sent updated cells to clients\n");
         }
     }

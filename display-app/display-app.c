@@ -253,6 +253,30 @@ int main(int argc, char *argv[])
         // Update the matrix with the received field update
         update_matrix_cells(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
 
+        // Draw the scores
+        // Print the scores in the score window
+        int i, j;
+        for (i = 0, j = 0; j < field_update_struct->size_of_scores; i++)
+        {
+
+            // j is the line number and only increments when a lizard is printed
+            mvwprintw(score_window, j, 0, "Lizard: Score %d", field_update_struct->scores[i]);
+            j++;
+
+            // Clear the rest of the line
+            wclrtoeol(score_window);
+        }
+
+        // Clear the remaining lines
+        for (; j < MAX_LIZARDS_ALLOWED; j++)
+        {
+            wmove(score_window, j, 0);
+            wclrtoeol(score_window);
+        }
+
+        // Update the score window
+        wrefresh(score_window);
+
         draw_updated_matrix(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
         //  ---------- END RECEIVE FIELD UPDATE FROM SERVER ----------
         free(type);
