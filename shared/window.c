@@ -11,9 +11,7 @@ void window_init(window_data **data, int width, int height)
 {
     *data = (window_data *)malloc(sizeof(window_data));
 
-    (*data)->win = newwin(width, height, 0, 0);
-    box((*data)->win, 0, 0);
-    wrefresh((*data)->win);
+    init_ncurses_window(data, width, height);
 
     (*data)->matrix = (window_matrix *)malloc(sizeof(window_matrix));
     init_window_matrix((*data)->matrix, width, height);
@@ -21,6 +19,14 @@ void window_init(window_data **data, int width, int height)
     // Create buffer for updated cells
     (*data)->updated_cell_indexes = (int *)malloc(sizeof(int) * width * height);
     (*data)->size_of_updated_cells = 0;
+}
+
+void init_ncurses_window(window_data **data, int width, int height)
+{
+    // Initialize ncurses window
+    (*data)->win = newwin(width, height, 0, 0);
+    box((*data)->win, 0, 0);
+    wrefresh((*data)->win);
 }
 
 /**

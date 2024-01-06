@@ -268,12 +268,13 @@ void send_updated_cells(void *publisher, window_data *game_window, lizard_mover 
     }
 
     field_update_message.size_of_scores = *lizard_payload->num_lizards;
-    field_update_message.scores = (int *)malloc(sizeof(int) * field_update_message.size_of_scores);
+    field_update_message.scores = (scores_update *)malloc(sizeof(scores_update) * field_update_message.size_of_scores);
 
     // Copy the scores from the lizard mover to the field update message
     for (int i = 0; i < field_update_message.size_of_scores; i++)
     {
-        field_update_message.scores[i] = lizard_payload->lizards[i].score;
+        field_update_message.scores[i].score = lizard_payload->lizards[i].score;
+        field_update_message.scores[i].ch = lizard_payload->lizards[i].ch;
     }
 
     // --- Start of proto encoding ---
@@ -522,6 +523,7 @@ int main(int argc, char *argv[])
             log_write("Processing wasp message\n");
             process_wasp_message(wasp_payload);
             break;
+        // This will still remain to process the display app message from the lizard-client
         case DISPLAY_APP:
             log_write("Processing display app message\n");
             process_display_app_message(responder, game_window);

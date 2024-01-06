@@ -187,6 +187,51 @@ void   window_data_proto__free_unpacked
   assert(message->base.descriptor == &window_data_proto__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   scores_update_proto__init
+                     (ScoresUpdateProto         *message)
+{
+  static const ScoresUpdateProto init_value = SCORES_UPDATE_PROTO__INIT;
+  *message = init_value;
+}
+size_t scores_update_proto__get_packed_size
+                     (const ScoresUpdateProto *message)
+{
+  assert(message->base.descriptor == &scores_update_proto__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t scores_update_proto__pack
+                     (const ScoresUpdateProto *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &scores_update_proto__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t scores_update_proto__pack_to_buffer
+                     (const ScoresUpdateProto *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &scores_update_proto__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+ScoresUpdateProto *
+       scores_update_proto__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (ScoresUpdateProto *)
+     protobuf_c_message_unpack (&scores_update_proto__descriptor,
+                                allocator, len, data);
+}
+void   scores_update_proto__free_unpacked
+                     (ScoresUpdateProto *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &scores_update_proto__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 void   field_update_proto__init
                      (FieldUpdateProto         *message)
 {
@@ -462,6 +507,57 @@ const ProtobufCMessageDescriptor window_data_proto__descriptor =
   (ProtobufCMessageInit) window_data_proto__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
+static const ProtobufCFieldDescriptor scores_update_proto__field_descriptors[2] =
+{
+  {
+    "score",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(ScoresUpdateProto, score),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "ch",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(ScoresUpdateProto, ch),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned scores_update_proto__field_indices_by_name[] = {
+  1,   /* field[1] = ch */
+  0,   /* field[0] = score */
+};
+static const ProtobufCIntRange scores_update_proto__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor scores_update_proto__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "ScoresUpdateProto",
+  "ScoresUpdateProto",
+  "ScoresUpdateProto",
+  "",
+  sizeof(ScoresUpdateProto),
+  2,
+  scores_update_proto__field_descriptors,
+  scores_update_proto__field_indices_by_name,
+  1,  scores_update_proto__number_ranges,
+  (ProtobufCMessageInit) scores_update_proto__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
 static const ProtobufCFieldDescriptor field_update_proto__field_descriptors[5] =
 {
   {
@@ -492,12 +588,12 @@ static const ProtobufCFieldDescriptor field_update_proto__field_descriptors[5] =
     "scores",
     3,
     PROTOBUF_C_LABEL_REPEATED,
-    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_TYPE_MESSAGE,
     offsetof(FieldUpdateProto, n_scores),
     offsetof(FieldUpdateProto, scores),
+    &scores_update_proto__descriptor,
     NULL,
-    NULL,
-    0 | PROTOBUF_C_FIELD_FLAG_PACKED,             /* flags */
+    0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {

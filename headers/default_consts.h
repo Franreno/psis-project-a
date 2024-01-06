@@ -30,6 +30,7 @@
 #include <signal.h>
 #include <zmq.h>
 #include <ncurses.h>
+#include <pthread.h>
 
 typedef enum direction_t
 {

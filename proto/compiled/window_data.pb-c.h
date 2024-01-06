@@ -19,6 +19,7 @@ typedef struct _LayerCharProto LayerCharProto;
 typedef struct _LayerCellProto LayerCellProto;
 typedef struct _WindowMatrixProto WindowMatrixProto;
 typedef struct _WindowDataProto WindowDataProto;
+typedef struct _ScoresUpdateProto ScoresUpdateProto;
 typedef struct _FieldUpdateProto FieldUpdateProto;
 
 
@@ -111,6 +112,17 @@ struct  _WindowDataProto
     , NULL }
 
 
+struct  _ScoresUpdateProto
+{
+  ProtobufCMessage base;
+  int32_t score;
+  int32_t ch;
+};
+#define SCORES_UPDATE_PROTO__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&scores_update_proto__descriptor) \
+    , 0, 0 }
+
+
 struct  _FieldUpdateProto
 {
   ProtobufCMessage base;
@@ -119,7 +131,7 @@ struct  _FieldUpdateProto
   size_t n_updated_cell_indexes;
   int32_t *updated_cell_indexes;
   size_t n_scores;
-  int32_t *scores;
+  ScoresUpdateProto **scores;
   int32_t size_of_updated_cells;
   int32_t size_of_scores;
 };
@@ -204,6 +216,25 @@ WindowDataProto *
 void   window_data_proto__free_unpacked
                      (WindowDataProto *message,
                       ProtobufCAllocator *allocator);
+/* ScoresUpdateProto methods */
+void   scores_update_proto__init
+                     (ScoresUpdateProto         *message);
+size_t scores_update_proto__get_packed_size
+                     (const ScoresUpdateProto   *message);
+size_t scores_update_proto__pack
+                     (const ScoresUpdateProto   *message,
+                      uint8_t             *out);
+size_t scores_update_proto__pack_to_buffer
+                     (const ScoresUpdateProto   *message,
+                      ProtobufCBuffer     *buffer);
+ScoresUpdateProto *
+       scores_update_proto__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   scores_update_proto__free_unpacked
+                     (ScoresUpdateProto *message,
+                      ProtobufCAllocator *allocator);
 /* FieldUpdateProto methods */
 void   field_update_proto__init
                      (FieldUpdateProto         *message);
@@ -237,6 +268,9 @@ typedef void (*WindowMatrixProto_Closure)
 typedef void (*WindowDataProto_Closure)
                  (const WindowDataProto *message,
                   void *closure_data);
+typedef void (*ScoresUpdateProto_Closure)
+                 (const ScoresUpdateProto *message,
+                  void *closure_data);
 typedef void (*FieldUpdateProto_Closure)
                  (const FieldUpdateProto *message,
                   void *closure_data);
@@ -250,6 +284,7 @@ extern const ProtobufCMessageDescriptor layer_char_proto__descriptor;
 extern const ProtobufCMessageDescriptor layer_cell_proto__descriptor;
 extern const ProtobufCMessageDescriptor window_matrix_proto__descriptor;
 extern const ProtobufCMessageDescriptor window_data_proto__descriptor;
+extern const ProtobufCMessageDescriptor scores_update_proto__descriptor;
 extern const ProtobufCMessageDescriptor field_update_proto__descriptor;
 
 PROTOBUF_C__END_DECLS

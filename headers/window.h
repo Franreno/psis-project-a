@@ -41,11 +41,17 @@ typedef struct window_data
     int size_of_updated_cells;
 } window_data;
 
+typedef struct scores_update
+{
+    int score;
+    char ch;
+} scores_update;
+
 typedef struct field_update
 {
     layer_cell *updated_cells;
     int *updated_cell_indexes;
-    int *scores;
+    scores_update *scores;
 
     int size_of_updated_cells;
     int size_of_scores;
@@ -53,6 +59,7 @@ typedef struct field_update
 
 // Function prototypes
 void window_init(window_data **game_window, int width, int height);
+void init_ncurses_window(window_data **data, int width, int height);
 void window_draw(window_data *data, int x, int y, char ch, int client_id, int position_in_array);
 void window_erase(window_data *game_window, int x, int y, char ch);
 void window_refresh(window_data *game_window);
