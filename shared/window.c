@@ -525,6 +525,49 @@ void draw_entire_matrix(window_data *data)
     wrefresh(data->win);
 }
 
+void erase_cell(window_data *data, int cell_index)
+{
+    int x = cell_index % data->matrix->width;
+    int y = cell_index / data->matrix->width;
+
+    // Move to the position in the ncurses window
+    wmove(data->win, x, y);
+    waddch(data->win, ' ');
+
+    // Refresh the window to reflect changes
+    wrefresh(data->win);
+}
+
+void draw_cell(window_data *data, int cell_index, layer_cell *cell)
+{
+    int x = cell_index % data->matrix->width;
+    int y = cell_index / data->matrix->width;
+
+    // Always draw the top character from the stack at the specified position
+    char top_char = (cell->top >= 0) ? cell->stack[cell->top].ch : ' ';
+
+    // Move to the position and draw the top character
+    wmove(data->win, x, y);
+    waddch(data->win, top_char | A_BOLD);
+    wrefresh(data->win);
+}
+
+void draw_updated_matrix(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells)
+{
+    for (int i = 0; i < size_of_updated_cells; i++)
+    {
+        int index_of_this_cell = updated_cell_indexes[i];
+
+        layer_cell *cell = &updated_cells[i];
+
+        // Erase old state of the cell
+        erase_cell(data, index_of_this_cell);
+
+        // Draw new state of the cell
+        draw_cell(data, index_of_this_cell, cell);
+    }
+}
+
 /**
  * @brief Updates the cells of a matrix in a window.
  *

@@ -277,31 +277,14 @@ int main(int argc, char *argv[])
             zmq_ctx_destroy(context);
             exit(1);
         }
-        log_write("Field update received from server:\n");
-        log_write("Field update size: %d\n", field_update_proto->size_of_updated_cells);
-        log_write("Field update updated cell indexes: ");
-        for (int i = 0; i < field_update_proto->size_of_updated_cells; i++)
-        {
-            log_write("%d ", field_update_proto->updated_cell_indexes[i]);
-        }
-        log_write("Updated cells:\n");
-        for (int i = 0; i < field_update_proto->size_of_updated_cells; i++)
-        {
-            // only log cell index
-            log_write("Cell %d\n", i);
-            // log_write("Cell %d: %d %d\n", i, field_update_proto->updated_cells[i]->stack[0]->ch, field_update_proto->updated_cells[i]->stack[0]->client_id);
-        }
-
         // Convert the field update proto to a field update
         field_update *field_update_struct = malloc(sizeof(field_update));
-        log_write("Converting field update proto to field update\n");
         proto_field_update_to_field_update(field_update_proto, field_update_struct);
-        log_write("Field update converted\n");
 
         // Update the matrix with the received field update
         update_matrix_cells(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
 
-        draw_entire_matrix(game_window);
+        draw_updated_matrix(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
         //  ---------- END RECEIVE FIELD UPDATE FROM SERVER ----------
         free(type);
         zmq_msg_close(&message);

@@ -252,14 +252,8 @@ void send_updated_cells(void *publisher, window_data *game_window)
     zmq_send(publisher, proto_field_update_buffer, proto_field_update_size, 0);
 
     // Free the allocated memory
-    log_write("Freeing allocated memory\n");
-    // free(proto_field_update_buffer);
-    log_write("Freed proto field update buffer\n");
-    log_write("Freeing proto field update\n");
-    // Free each LayerCharProto and then each LayerCellProto
-
-    // field_update_proto__free_unpacked(proto_field_update, NULL);
-    log_write("Freed proto field update\n");
+    free(proto_field_update_buffer);
+    field_update_proto__free_unpacked(proto_field_update, NULL);
 
     // Clear the updated cells
     game_window->size_of_updated_cells = 0;

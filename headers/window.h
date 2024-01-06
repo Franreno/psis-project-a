@@ -74,5 +74,6 @@ void window_matrix_remove_char_from_stack(window_data *data, int x, int y, char 
 void track_cell_update(window_data *data, int cell_index);
 void update_matrix_cells(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells);
 layer_cell *get_cell(window_matrix *matrix, int x, int y);
+void draw_updated_matrix(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells);
 
 #endif
