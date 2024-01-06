@@ -98,72 +98,28 @@ int create_and_connect_sockets(char *rep_server_socket_address, char *pub_server
  * @param lizard_mover - Lizard mover
  * @param wasp_mover - Wasp mover
  */
-void process_display_app_message(void *responder, window_data *data, roach_mover *roach_mover, lizard_mover *lizard_mover)
+void process_display_app_message(void *responder, window_data *data)
 {
-    // Serialize the window matrix
-    char *serialized_data;
-    size_t serialized_size;
-    serialize_window_matrix(data->matrix, &serialized_data, &serialized_size);
 
-    if (!serialized_data)
-    {
-        int error_code = -1; // Example error code
-        // TODO: ADD PROTO ENCODER (maybe)
-        zmq_send(responder, &error_code, sizeof(error_code), 0);
-        return;
-    }
+    // Create proto window data
+    WindowDataProto *proto_window_data = malloc(sizeof(WindowDataProto));
+    window_data_proto__init(proto_window_data);
 
-    // Send the serialized data
-    // TODO: ADD PROTO ENCODER
-    zmq_send(responder, &serialized_size, sizeof(serialized_size), ZMQ_SNDMORE);
-    zmq_send(responder, serialized_data, serialized_size, ZMQ_SNDMORE);
+    // Convert window data to proto window data
+    window_data_to_proto_window_data(proto_window_data, data);
 
-    // Serialize the roach mover
-    char *serialized_roach_mover;
-    size_t serialized_roach_mover_size;
-    serialize_roach_mover(roach_mover, &serialized_roach_mover, &serialized_roach_mover_size);
+    // Serialize the proto window data
+    size_t proto_window_data_size = window_data_proto__get_packed_size(proto_window_data);
+    void *proto_window_data_buffer = malloc(proto_window_data_size);
 
-    log_write("Serialized roach mover size: %d\n", serialized_roach_mover_size);
-
-    if (serialized_roach_mover == NULL)
-    {
-        log_write("Failed to serialize roach mover!!!\n");
-        int error_code = -1; // Example error code
-        // TODO: ADD PROTO ENCODER
-        zmq_send(responder, &error_code, sizeof(error_code), 0);
-        return;
-    }
+    window_data_proto__pack(proto_window_data, proto_window_data_buffer);
 
     // Send the serialized data
-    // TODO: ADD PROTO ENCODER
-    zmq_send(responder, &serialized_roach_mover_size, sizeof(serialized_roach_mover_size), ZMQ_SNDMORE);
-    zmq_send(responder, serialized_roach_mover, serialized_roach_mover_size, ZMQ_SNDMORE);
+    zmq_send(responder, proto_window_data_buffer, proto_window_data_size, 0);
 
-    // Serialize the lizard mover
-    char *serialized_lizard_mover;
-    size_t serialized_lizard_mover_size;
-    serialize_lizard_mover(lizard_mover, &serialized_lizard_mover, &serialized_lizard_mover_size);
-
-    log_write("Serialized lizard mover size: %d\n", serialized_lizard_mover_size);
-
-    if (serialized_lizard_mover == NULL)
-    {
-        log_write("Failed to serialize lizard mover!!!\n");
-        int error_code = -1; // Example error code
-        // TODO: ADD PROTO ENCODER
-        zmq_send(responder, &error_code, sizeof(error_code), 0);
-        return;
-    }
-
-    // Send the serialized data
-    // TODO: ADD PROTO ENCODER
-    zmq_send(responder, &serialized_lizard_mover_size, sizeof(serialized_lizard_mover_size), ZMQ_SNDMORE);
-    zmq_send(responder, serialized_lizard_mover, serialized_lizard_mover_size, 0);
-
-    // Cleanup
-    free(serialized_data);
-    free(serialized_roach_mover);
-    free(serialized_lizard_mover);
+    // Free the allocated memory
+    free(proto_window_data_buffer);
+    window_data_proto__free_unpacked(proto_window_data, NULL);
 }
 
 /**
@@ -225,13 +181,6 @@ void send_updated_cells(void *publisher, window_data *game_window)
     for (int i = 0; i < game_window->size_of_updated_cells; i++)
     {
         field_update_message.updated_cells[i] = game_window->matrix->cells[game_window->updated_cell_indexes[i]];
-    }
-
-    // Log the updated cells
-    log_write("Updated cells:\n");
-    for (int i = 0; i < game_window->size_of_updated_cells; i++)
-    {
-        log_write("Cell %d: %d %d\n", i, field_update_message.updated_cells[i].stack[0].ch, field_update_message.updated_cells[i].stack[0].client_id);
     }
 
     // --- Start of proto encoding ---
@@ -451,7 +400,7 @@ int main(int argc, char *argv[])
             break;
         case DISPLAY_APP:
             log_write("Processing display app message\n");
-            process_display_app_message(responder, game_window, roach_payload, lizard_payload);
+            process_display_app_message(responder, game_window);
             log_write("Processed display app message\n");
             break;
         default:

@@ -67,7 +67,7 @@ void window_matrix_add_char(window_data *data, int x, int y, char ch, int client
 char window_matrix_peek_below_top_char(window_matrix *matrix, int x, int y);
 void serialize_window_matrix(window_matrix *matrix, char **buffer, size_t *buffer_size);
 void deserialize_window_matrix(window_matrix *matrix, char *buffer);
-void window_init_with_matrix(window_data **data, int width, int height, char *serialized_matrix);
+void window_init_with_matrix(window_data **data, int width, int height);
 void draw_entire_matrix(window_data *data);
 void print_window_matrix(window_matrix *matrix);
 void window_matrix_remove_char_from_stack(window_data *data, int x, int y, char ch);

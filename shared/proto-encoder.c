@@ -249,7 +249,18 @@ void window_data_to_proto_window_data(WindowDataProto *proto, window_data *data)
 {
     proto->matrix = malloc(sizeof(WindowMatrixProto));
     window_matrix_proto__init(proto->matrix);
-    window_matrix_to_proto_window_matrix(proto->matrix, data->matrix);
+    proto->matrix->width = data->matrix->width;
+    proto->matrix->height = data->matrix->height;
+
+    proto->matrix->n_cells = data->matrix->width * data->matrix->height;
+    proto->matrix->cells = malloc(proto->matrix->n_cells * sizeof(LayerCellProto *));
+
+    for (size_t i = 0; i < proto->matrix->n_cells; i++)
+    {
+        proto->matrix->cells[i] = malloc(sizeof(LayerCellProto));
+        layer_cell_proto__init(proto->matrix->cells[i]);
+        convert_layer_cell_to_layer_cell_proto(proto->matrix->cells[i], &data->matrix->cells[i]);
+    }
 }
 
 // Convert LayerCellProto to LayerCell

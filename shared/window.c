@@ -29,9 +29,8 @@ void window_init(window_data **data, int width, int height)
  * @param data - Pointer to the window_data struct
  * @param width - Width of the window
  * @param height - Height of the window
- * @param serialized_matrix - Serialized matrix to initialize the window with
  */
-void window_init_with_matrix(window_data **data, int width, int height, char *serialized_matrix)
+void window_init_with_matrix(window_data **data, int width, int height)
 {
     // Allocate memory for window_data
     *data = (window_data *)malloc(sizeof(window_data));
@@ -68,9 +67,6 @@ void window_init_with_matrix(window_data **data, int width, int height, char *se
         free(*data);
         return;
     }
-
-    // Deserialize the matrix from the buffer
-    deserialize_window_matrix((*data)->matrix, serialized_matrix);
 }
 
 /**

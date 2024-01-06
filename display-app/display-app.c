@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
     message_to_server send_message;
     send_message.client_id = DISPLAY_APP;
     send_message.type = CONNECT;
+
     // -- Start ProtoEncoder --
     MessageToServerProto *proto = malloc(sizeof(MessageToServerProto));
     message_to_server_proto__init(proto);
@@ -168,85 +169,53 @@ int main(int argc, char *argv[])
 
     // ---------- START RECEIVE INITAL DATA FROM SERVER ----------
 
-    // Buffer to hold the received data
-    size_t buffer_size;
-    zmq_recv(requester, &buffer_size, sizeof(buffer_size), 0);
+    zmq_msg_t message;
 
-    // Allocate the buffer based on the received size
-    char *buffer = malloc(buffer_size);
-    if (!buffer)
+    zmq_msg_init(&message);
+
+    if (zmq_msg_recv(&message, requester, 0) == -1)
     {
+        printf("Error receiving message: %s\n", zmq_strerror(errno));
+        zmq_close(requester);
+        zmq_close(subscriber);
+        zmq_ctx_destroy(context);
         exit(1);
     }
 
-    // First, receive the size of the incoming message
-    zmq_recv(requester, buffer, buffer_size, 0);
+    // Get the size of the received message
+    size_t size = zmq_msg_size(&message);
+    void *buffer = zmq_msg_data(&message);
+
+    // Deserialize the field update from the buffer
+    WindowDataProto *window_data_proto = window_data_proto__unpack(NULL, size, buffer);
+    if (window_data_proto == NULL)
+    {
+        printf("Error unpacking message\n");
+        zmq_close(requester);
+        zmq_close(subscriber);
+        zmq_ctx_destroy(context);
+        exit(1);
+    }
+
+    // Convert the field update proto to a field update
+    window_data *window_data_struct = malloc(sizeof(window_data));
+    proto_window_data_to_window_data(window_data_proto, window_data_struct);
+
+    window_data_proto__free_unpacked(window_data_proto, NULL);
+    zmq_msg_close(&message);
 
     // ---------- END RECEIVE INITAL DATA FROM SERVER ----------
 
-    // ---------- START RECEIVE ROACH AND LIZARD MOVER DATA FROM SERVER ----------
-    // Receive the roach mover data
-    size_t roach_mover_buffer_size;
-    zmq_recv(requester, &roach_mover_buffer_size, sizeof(roach_mover_buffer_size), 0);
-
-    // Allocate the buffer based on the received size
-    char *roach_mover_buffer = malloc(roach_mover_buffer_size);
-    if (!roach_mover_buffer)
-    {
-        exit(1);
-    }
-
-    zmq_recv(requester, roach_mover_buffer, roach_mover_buffer_size, 0);
-
-    // Deserialize the roach mover from the buffer
-    roach_mover *roach_payload = malloc(sizeof(roach_mover));
-    deserialize_roach_mover(roach_payload, roach_mover_buffer);
-
-    // Receive the lizard mover data
-    size_t lizard_mover_buffer_size;
-    zmq_recv(requester, &lizard_mover_buffer_size, sizeof(lizard_mover_buffer_size), 0);
-
-    // Allocate the buffer based on the received size
-    char *lizard_mover_buffer = malloc(lizard_mover_buffer_size);
-    if (!lizard_mover_buffer)
-    {
-        exit(1);
-    }
-
-    zmq_recv(requester, lizard_mover_buffer, lizard_mover_buffer_size, 0);
-
-    // Deserialize the lizard mover from the buffer
-    lizard_mover *lizard_payload = malloc(sizeof(lizard_mover));
-    deserialize_lizard_mover(lizard_payload, lizard_mover_buffer);
-
-    // ---------- END RECEIVE ROACH AND LIZARD MOVER DATA FROM SERVER ----------
-
     // Creates a window and draws a border
     window_data *game_window;
-    window_init_with_matrix(&game_window, WINDOW_SIZE, WINDOW_SIZE, buffer);
+    window_init_with_matrix(&game_window, WINDOW_SIZE, WINDOW_SIZE);
+    memcpy(game_window->matrix->cells, window_data_struct->matrix->cells, sizeof(layer_cell) * WINDOW_SIZE * WINDOW_SIZE);
+
     draw_entire_matrix(game_window);
 
     // Create a new window for the scores
     WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
 
-    // Include not serialized components into the movers
-    roach_payload->game_window = game_window;
-    lizard_payload->game_window = game_window;
-    lizard_payload->should_use_responder = 0;
-    roach_payload->should_use_responder = 0;
-
-    // Create dummy pointer to eaten roaches
-    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_SLOTS_ALLOWED);
-    int eaten_roaches_count = 0;
-
-    roach_payload->eaten_roaches = eaten_roaches;
-    roach_payload->amount_eaten_roaches = &eaten_roaches_count;
-    lizard_payload->eaten_roaches = eaten_roaches;
-    lizard_payload->amount_eaten_roaches = &eaten_roaches_count;
-    roach_payload->lizards = lizard_payload->lizards;
-    lizard_payload->roaches = roach_payload->roaches;
-
-    zmq_msg_t message;
     while (1)
     {
         // Receive the field update
