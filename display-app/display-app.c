@@ -6,27 +6,6 @@
 #include "proto-encoder.h"
 
 /**
- * @brief Receives a message from a socket
- *
- * @param socket  Socket to receive the message from
- * @return char* The received message
- */
-static char *s_recv(void *socket)
-{
-    enum
-    {
-        cap = 256
-    };
-    char buffer[cap];
-    int size = zmq_recv(socket, buffer, cap - 1, 0);
-    if (size == -1)
-        return NULL;
-    buffer[size < cap ? size : cap - 1] = '\0';
-
-    return strndup(buffer, sizeof(buffer) - 1);
-}
-
-/**
  * @brief Create a and connect sockets object
  *
  * @param req_server_socket_address - Address of the server socket to connect to

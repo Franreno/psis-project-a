@@ -522,6 +522,7 @@ int main(int argc, char *argv[])
             log_write("Processing wasp message\n");
             process_wasp_message(wasp_payload);
             break;
+        // This will still remain to process the display app message from the lizard-client
         case DISPLAY_APP:
             log_write("Processing display app message\n");
             process_display_app_message(responder, game_window);

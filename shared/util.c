@@ -73,3 +73,24 @@ void tail_position_calc(int *x, int *y, direction_t direction, char *overflow)
         break;
     }
 }
+
+/**
+ * @brief Receives a message from a socket
+ *
+ * @param socket  Socket to receive the message from
+ * @return char* The received message
+ */
+char *s_recv(void *socket)
+{
+    enum
+    {
+        cap = 256
+    };
+    char buffer[cap];
+    int size = zmq_recv(socket, buffer, cap - 1, 0);
+    if (size == -1)
+        return NULL;
+    buffer[size < cap ? size : cap - 1] = '\0';
+
+    return strndup(buffer, sizeof(buffer) - 1);
+}

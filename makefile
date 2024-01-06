@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -I./headers -I./shared -I./proto/compiled
-LDFLAGS = -lncurses -lzmq -lprotobuf-c
+LDFLAGS = -lncurses -lzmq -lprotobuf-c -lpthread
 
 SHARED_DIR = ./shared
 OUTPUT_DIR = ./output
@@ -16,7 +16,7 @@ PROTO_COMPILED_DIR = $(PROTO_DIR)/compiled
 # Define the object files for each target using the appropriate directory for the main file
 OBJS_LIZARDS_SERVER = $(SERVER_DIR)/lizardsNroachesNwasps-server.o $(SHARED_DIR)/util.o $(SHARED_DIR)/logger.o $(SHARED_DIR)/window.o $(SHARED_DIR)/lizard-mover.o $(SHARED_DIR)/roach-mover.o 	$(SHARED_DIR)/wasp-mover.o $(SHARED_DIR)/proto-encoder.o
 OBJS_DISPLAY_APP = $(DISPLAY_APP_DIR)/display-app.o $(SHARED_DIR)/util.o $(SHARED_DIR)/logger.o $(SHARED_DIR)/window.o $(SHARED_DIR)/lizard-mover.o $(SHARED_DIR)/roach-mover.o $(SHARED_DIR)/wasp-mover.o $(SHARED_DIR)/proto-encoder.o
-OBJS_LIZARD_CLIENT = $(LIZARD_CLIENT_DIR)/lizard-client.o $(SHARED_DIR)/logger.o $(SHARED_DIR)/proto-encoder.o
+OBJS_LIZARD_CLIENT = $(LIZARD_CLIENT_DIR)/lizard-client.o $(SHARED_DIR)/util.o $(SHARED_DIR)/logger.o $(SHARED_DIR)/proto-encoder.o $(SHARED_DIR)/window.o
 OBJS_ROACHES_CLIENT = $(ROACHES_CLIENT_DIR)/roaches-client.o $(SHARED_DIR)/logger.o $(SHARED_DIR)/proto-encoder.o
 OBJS_WASPS_CLIENT = $(WASPS_CLIENT_DIR)/wasps-client.o $(SHARED_DIR)/logger.o $(SHARED_DIR)/proto-encoder.o
 

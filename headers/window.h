@@ -53,6 +53,7 @@ typedef struct field_update
 
 // Function prototypes
 void window_init(window_data **game_window, int width, int height);
+void init_ncurses_window(window_data **data, int width, int height);
 void window_draw(window_data *data, int x, int y, char ch, int client_id, int position_in_array);
 void window_erase(window_data *game_window, int x, int y, char ch);
 void window_refresh(window_data *game_window);
