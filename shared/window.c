@@ -17,6 +17,10 @@ void window_init(window_data **data, int width, int height)
 
     (*data)->matrix = (window_matrix *)malloc(sizeof(window_matrix));
     init_window_matrix((*data)->matrix, width, height);
+
+    // Create buffer for updated cells
+    (*data)->updated_cell_indexes = (int *)malloc(sizeof(int) * width * height);
+    (*data)->size_of_updated_cells = 0;
 }
 
 /**
@@ -25,9 +29,8 @@ void window_init(window_data **data, int width, int height)
  * @param data - Pointer to the window_data struct
  * @param width - Width of the window
  * @param height - Height of the window
- * @param serialized_matrix - Serialized matrix to initialize the window with
  */
-void window_init_with_matrix(window_data **data, int width, int height, char *serialized_matrix)
+void window_init_with_matrix(window_data **data, int width, int height)
 {
     // Allocate memory for window_data
     *data = (window_data *)malloc(sizeof(window_data));
@@ -64,9 +67,6 @@ void window_init_with_matrix(window_data **data, int width, int height, char *se
         free(*data);
         return;
     }
-
-    // Deserialize the matrix from the buffer
-    deserialize_window_matrix((*data)->matrix, serialized_matrix);
 }
 
 /**
@@ -98,8 +98,10 @@ void init_window_matrix(window_matrix *matrix, int width, int height)
 int get_char_priority(char ch)
 {
     if (isalpha(ch))
-        return 3;
+        return 4;
     if (isdigit(ch))
+        return 3;
+    if (ch == '#')
         return 2;
     if (ch == '.' || ch == '*')
         return 1;
@@ -116,9 +118,11 @@ int get_char_priority(char ch)
  * @param client_id - Client id
  * @param position_in_array - positon of client id in its array
  */
-void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int client_id, int position_in_array)
+void window_matrix_add_char(window_data *data, int x, int y, char ch, int client_id, int position_in_array)
 {
+    window_matrix *matrix = data->matrix;
     int index = INDEX(matrix->width, x, y);
+    track_cell_update(data, index);
     layer_cell *cell = &matrix->cells[index];
     int priority = get_char_priority(ch);
 
@@ -176,7 +180,7 @@ void window_matrix_add_char(window_matrix *matrix, int x, int y, char ch, int cl
 void window_draw(window_data *data, int x, int y, char ch, int client_id, int position_in_array)
 {
     // Add the character to the stack with priority
-    window_matrix_add_char(data->matrix, x, y, ch, client_id, position_in_array);
+    window_matrix_add_char(data, x, y, ch, client_id, position_in_array);
 
     // Always draw the top character from the stack at the specified position
     int index = INDEX(data->matrix->width, x, y);
@@ -244,9 +248,11 @@ char window_matrix_remove_top_char(window_matrix *matrix, int x, int y)
  * @param y- y coordinate
  * @param ch- Character to remove
  */
-void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, char ch)
+void window_matrix_remove_char_from_stack(window_data *data, int x, int y, char ch)
 {
+    window_matrix *matrix = data->matrix;
     int index = INDEX(matrix->width, x, y);
+    track_cell_update(data, index);
     layer_cell *cell = &matrix->cells[index];
 
     // Check if the character exists in the stack and find its position
@@ -282,7 +288,7 @@ void window_matrix_remove_char_from_stack(window_matrix *matrix, int x, int y, c
 void window_erase(window_data *data, int x, int y, char ch)
 {
     // Remove the specified character from the stack
-    window_matrix_remove_char_from_stack(data->matrix, x, y, ch);
+    window_matrix_remove_char_from_stack(data, x, y, ch);
 
     // Determine the index in the matrix for the cell at (x, y)
     int cell_index = INDEX(data->matrix->width, x, y);
@@ -336,6 +342,10 @@ void window_destroy(window_data *data)
             free(data->matrix);
         }
         free(data);
+
+        // Free the buffer for updated cell indexes
+        if (data->updated_cell_indexes)
+            free(data->updated_cell_indexes);
     }
     endwin();
 }
@@ -509,4 +519,146 @@ void draw_entire_matrix(window_data *data)
 
     // Refresh the window to update the screen
     wrefresh(data->win);
+}
+
+void erase_cell(window_data *data, int cell_index)
+{
+    int x = cell_index % data->matrix->width;
+    int y = cell_index / data->matrix->width;
+
+    // Move to the position in the ncurses window
+    wmove(data->win, x, y);
+    waddch(data->win, ' ');
+
+    // Refresh the window to reflect changes
+    wrefresh(data->win);
+}
+
+void draw_cell(window_data *data, int cell_index, layer_cell *cell)
+{
+    int x = cell_index % data->matrix->width;
+    int y = cell_index / data->matrix->width;
+
+    // Always draw the top character from the stack at the specified position
+    char top_char = (cell->top >= 0) ? cell->stack[cell->top].ch : ' ';
+
+    // Move to the position and draw the top character
+    wmove(data->win, x, y);
+    waddch(data->win, top_char | A_BOLD);
+    wrefresh(data->win);
+}
+
+void draw_updated_matrix(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells)
+{
+    for (int i = 0; i < size_of_updated_cells; i++)
+    {
+        int index_of_this_cell = updated_cell_indexes[i];
+
+        layer_cell *cell = &updated_cells[i];
+
+        // Erase old state of the cell
+        erase_cell(data, index_of_this_cell);
+
+        // Draw new state of the cell
+        draw_cell(data, index_of_this_cell, cell);
+    }
+}
+
+/**
+ * @brief Updates the cells of a matrix in a window.
+ *
+ * This function iterates over a list of updated cells and their corresponding indexes in the matrix.
+ * For each updated cell, it validates the index, frees the existing stack in the cell to be updated,
+ * allocates new memory for the stack, copies the new stack data, and updates other properties of the cell.
+ *
+ * @param data The window data containing the matrix to be updated.
+ * @param updated_cells An array of cells with updated data.
+ * @param updated_cell_indexes An array of indexes in the matrix corresponding to the updated cells.
+ * @param size_of_updated_cells The number of cells that have been updated.
+ */
+void update_matrix_cells(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells)
+{
+    for (int i = 0; i < size_of_updated_cells; i++)
+    {
+        int index_of_this_cell = updated_cell_indexes[i];
+
+        // Validate index
+        if (index_of_this_cell < 0 || index_of_this_cell >= data->matrix->width * data->matrix->height)
+            continue;
+
+        layer_cell *matrix_cell_with_new_data = &updated_cells[i];
+        layer_cell *matrix_cell_to_be_updated = &data->matrix->cells[index_of_this_cell];
+
+        // Free existing stack in the cell to be updated
+        free(matrix_cell_to_be_updated->stack);
+
+        // Allocate new memory for the stack and copy the new stack data
+        matrix_cell_to_be_updated->stack = malloc(matrix_cell_with_new_data->capacity * sizeof(layer_char));
+        if (matrix_cell_with_new_data->stack && matrix_cell_to_be_updated->stack)
+            memcpy(matrix_cell_to_be_updated->stack, matrix_cell_with_new_data->stack,
+                   matrix_cell_with_new_data->capacity * sizeof(layer_char));
+
+        // Copy other properties of the cell
+        matrix_cell_to_be_updated->capacity = matrix_cell_with_new_data->capacity;
+        matrix_cell_to_be_updated->top = matrix_cell_with_new_data->top;
+    }
+}
+
+/**
+ * @brief Tracks the indexes of the cells that have been updated.
+ *
+ * This function checks if the cell index already exists in the array of updated cell indexes.
+ * If it does, it does nothing. If it doesn't, it adds the cell index to the array.
+ *
+ * @param data The window data containing the matrix to be updated.
+ * @param cell_index The index of the cell to be tracked.
+ */
+void track_cell_update(window_data *data, int cell_index)
+{
+    // Check if the cell index already exists in the array
+    for (int i = 0; i < data->size_of_updated_cells; i++)
+    {
+        if (data->updated_cell_indexes[i] == cell_index)
+        {
+            // Index already tracked, no need to add it again
+            return;
+        }
+    }
+
+    // Check if there's enough space to add a new updated cell index
+    if (data->size_of_updated_cells >= data->matrix->width * data->matrix->height)
+    {
+    }
+
+    // Add the cell index to the tracking array
+    data->updated_cell_indexes[data->size_of_updated_cells] = cell_index;
+    data->size_of_updated_cells++;
+}
+
+void create_updated_layer_cells(window_data *data, layer_cell *updated_cells, int *updated_cell_indexes, int size_of_updated_cells)
+{
+    for (int i = 0; i < size_of_updated_cells; i++)
+    {
+        int index_of_this_cell = updated_cell_indexes[i];
+
+        // Validate index
+        if (index_of_this_cell < 0 || index_of_this_cell >= data->matrix->width * data->matrix->height)
+            continue;
+
+        layer_cell *matrix_cell_with_new_data = &updated_cells[i];
+        layer_cell *matrix_cell_to_be_updated = &data->matrix->cells[index_of_this_cell];
+
+        // Free existing stack in the cell to be updated
+        free(matrix_cell_to_be_updated->stack);
+
+        // Allocate new memory for the stack and copy the new stack data
+        matrix_cell_to_be_updated->stack = malloc(matrix_cell_with_new_data->capacity * sizeof(layer_char));
+        if (matrix_cell_with_new_data->stack && matrix_cell_to_be_updated->stack)
+            memcpy(matrix_cell_to_be_updated->stack, matrix_cell_with_new_data->stack,
+                   matrix_cell_with_new_data->capacity * sizeof(layer_char));
+
+        // Copy other properties of the cell
+        matrix_cell_to_be_updated->capacity = matrix_cell_with_new_data->capacity;
+        matrix_cell_to_be_updated->top = matrix_cell_with_new_data->top;
+    }
 }

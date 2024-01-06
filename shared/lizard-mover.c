@@ -254,7 +254,7 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         for (int i = 0; i < num_roaches; i++)
         {
             // Remove the roach from the stack
-            window_matrix_remove_char_from_stack(lizard_payload->game_window->matrix, *new_x, *new_y, roaches[i]);
+            window_matrix_remove_char_from_stack(lizard_payload->game_window, *new_x, *new_y, roaches[i]);
 
             // Mark the roach as eaten
             lizard_payload->roaches[roaches_positions[i]].is_eaten = 1;
@@ -388,7 +388,9 @@ void lizard_draw(lizard_mover *lizard_payload, int lizard_id)
 {
     // Draw the lizard in the new position
     window_draw(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD, LIZARD, lizard_id);
-    draw_lizard_tail(lizard_payload, lizard_id, lizard_payload->recv_message->direction);
+    // Only draw the tail if the score is positive
+    if (lizard_payload->lizards[lizard_id].score >= 0)
+        draw_lizard_tail(lizard_payload, lizard_id, lizard_payload->recv_message->direction);
 }
 
 /**
@@ -401,7 +403,9 @@ void lizard_erase(lizard_mover *lizard_payload, int lizard_id)
 {
     // Erase the lizard from the screen
     window_erase(lizard_payload->game_window, lizard_payload->lizards[lizard_id].x, lizard_payload->lizards[lizard_id].y, (lizard_payload->lizards[lizard_id].ch) | A_BOLD);
-    erase_lizard_tail(lizard_payload, lizard_id, lizard_payload->lizards[lizard_id].previous_direction);
+    // Only erase the tail if the score is positive
+    if (lizard_payload->lizards[lizard_id].score >= 0)
+        erase_lizard_tail(lizard_payload, lizard_id, lizard_payload->lizards[lizard_id].previous_direction);
 }
 
 /**

@@ -187,17 +187,62 @@ void   window_data_proto__free_unpacked
   assert(message->base.descriptor == &window_data_proto__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   field_update_proto__init
+                     (FieldUpdateProto         *message)
+{
+  static const FieldUpdateProto init_value = FIELD_UPDATE_PROTO__INIT;
+  *message = init_value;
+}
+size_t field_update_proto__get_packed_size
+                     (const FieldUpdateProto *message)
+{
+  assert(message->base.descriptor == &field_update_proto__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t field_update_proto__pack
+                     (const FieldUpdateProto *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &field_update_proto__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t field_update_proto__pack_to_buffer
+                     (const FieldUpdateProto *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &field_update_proto__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+FieldUpdateProto *
+       field_update_proto__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (FieldUpdateProto *)
+     protobuf_c_message_unpack (&field_update_proto__descriptor,
+                                allocator, len, data);
+}
+void   field_update_proto__free_unpacked
+                     (FieldUpdateProto *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &field_update_proto__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 static const ProtobufCFieldDescriptor layer_char_proto__field_descriptors[3] =
 {
   {
     "ch",
     1,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_STRING,
+    PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
     offsetof(LayerCharProto, ch),
     NULL,
-    &protobuf_c_empty_string,
+    NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
@@ -415,5 +460,95 @@ const ProtobufCMessageDescriptor window_data_proto__descriptor =
   window_data_proto__field_indices_by_name,
   1,  window_data_proto__number_ranges,
   (ProtobufCMessageInit) window_data_proto__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor field_update_proto__field_descriptors[5] =
+{
+  {
+    "updated_cells",
+    1,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(FieldUpdateProto, n_updated_cells),
+    offsetof(FieldUpdateProto, updated_cells),
+    &layer_cell_proto__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "updated_cell_indexes",
+    2,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_INT32,
+    offsetof(FieldUpdateProto, n_updated_cell_indexes),
+    offsetof(FieldUpdateProto, updated_cell_indexes),
+    NULL,
+    NULL,
+    0 | PROTOBUF_C_FIELD_FLAG_PACKED,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "scores",
+    3,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_INT32,
+    offsetof(FieldUpdateProto, n_scores),
+    offsetof(FieldUpdateProto, scores),
+    NULL,
+    NULL,
+    0 | PROTOBUF_C_FIELD_FLAG_PACKED,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size_of_updated_cells",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(FieldUpdateProto, size_of_updated_cells),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size_of_scores",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(FieldUpdateProto, size_of_scores),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned field_update_proto__field_indices_by_name[] = {
+  2,   /* field[2] = scores */
+  4,   /* field[4] = size_of_scores */
+  3,   /* field[3] = size_of_updated_cells */
+  1,   /* field[1] = updated_cell_indexes */
+  0,   /* field[0] = updated_cells */
+};
+static const ProtobufCIntRange field_update_proto__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 5 }
+};
+const ProtobufCMessageDescriptor field_update_proto__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "FieldUpdateProto",
+  "FieldUpdateProto",
+  "FieldUpdateProto",
+  "",
+  sizeof(FieldUpdateProto),
+  5,
+  field_update_proto__field_descriptors,
+  field_update_proto__field_indices_by_name,
+  1,  field_update_proto__number_ranges,
+  (ProtobufCMessageInit) field_update_proto__init,
   NULL,NULL,NULL    /* reserved[123] */
 };

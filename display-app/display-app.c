@@ -3,6 +3,7 @@
 #include "window.h"
 #include "roach-mover.h"
 #include "lizard-mover.h"
+#include "proto-encoder.h"
 
 /**
  * @brief Receives a message from a socket
@@ -134,9 +135,7 @@ int main(int argc, char *argv[])
     if (create_and_connect_sockets(req_server_socket_address, sub_server_socket_address, &context, &requester, &subscriber) != 0)
         return -1;
 
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_movement", 3);
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_connect", 3);
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update_disconnect", 3);
+    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update", 3);
 
     // Initialize ncurses
     initscr();
@@ -148,103 +147,120 @@ int main(int argc, char *argv[])
     message_to_server send_message;
     send_message.client_id = DISPLAY_APP;
     send_message.type = CONNECT;
-    // TODO: ADD PROTO ENCODER
-    zmq_send(requester, &send_message, sizeof(message_to_server), 0);
+
+    // -- Start ProtoEncoder --
+    MessageToServerProto *proto = malloc(sizeof(MessageToServerProto));
+    message_to_server_proto__init(proto);
+
+    message_to_server_to_proto_message_to_server(proto, &send_message);
+
+    size_t proto_size = message_to_server_proto__get_packed_size(proto);
+    void *proto_buffer = malloc(proto_size);
+
+    message_to_server_proto__pack(proto, proto_buffer);
+
+    // Send the message
+    zmq_send(requester, proto_buffer, proto_size, 0);
+
+    free(proto_buffer);
+    message_to_server_proto__free_unpacked(proto, NULL);
+
+    // -- End ProtoEncoder --
 
     // ---------- START RECEIVE INITAL DATA FROM SERVER ----------
 
-    // Buffer to hold the received data
-    size_t buffer_size;
-    zmq_recv(requester, &buffer_size, sizeof(buffer_size), 0);
+    zmq_msg_t message;
 
-    // Allocate the buffer based on the received size
-    char *buffer = malloc(buffer_size);
-    if (!buffer)
+    zmq_msg_init(&message);
+
+    if (zmq_msg_recv(&message, requester, 0) == -1)
     {
+        printf("Error receiving message: %s\n", zmq_strerror(errno));
+        zmq_close(requester);
+        zmq_close(subscriber);
+        zmq_ctx_destroy(context);
         exit(1);
     }
 
-    // First, receive the size of the incoming message
-    zmq_recv(requester, buffer, buffer_size, 0);
+    // Get the size of the received message
+    size_t size = zmq_msg_size(&message);
+    void *buffer = zmq_msg_data(&message);
+
+    // Deserialize the field update from the buffer
+    WindowDataProto *window_data_proto = window_data_proto__unpack(NULL, size, buffer);
+    if (window_data_proto == NULL)
+    {
+        printf("Error unpacking message\n");
+        zmq_close(requester);
+        zmq_close(subscriber);
+        zmq_ctx_destroy(context);
+        exit(1);
+    }
+
+    // Convert the field update proto to a field update
+    window_data *window_data_struct = malloc(sizeof(window_data));
+    proto_window_data_to_window_data(window_data_proto, window_data_struct);
+
+    window_data_proto__free_unpacked(window_data_proto, NULL);
+    zmq_msg_close(&message);
 
     // ---------- END RECEIVE INITAL DATA FROM SERVER ----------
 
-    // ---------- START RECEIVE ROACH AND LIZARD MOVER DATA FROM SERVER ----------
-    // Receive the roach mover data
-    size_t roach_mover_buffer_size;
-    zmq_recv(requester, &roach_mover_buffer_size, sizeof(roach_mover_buffer_size), 0);
-
-    // Allocate the buffer based on the received size
-    char *roach_mover_buffer = malloc(roach_mover_buffer_size);
-    if (!roach_mover_buffer)
-    {
-        exit(1);
-    }
-
-    zmq_recv(requester, roach_mover_buffer, roach_mover_buffer_size, 0);
-
-    // Deserialize the roach mover from the buffer
-    roach_mover *roach_payload = malloc(sizeof(roach_mover));
-    deserialize_roach_mover(roach_payload, roach_mover_buffer);
-
-    // Receive the lizard mover data
-    size_t lizard_mover_buffer_size;
-    zmq_recv(requester, &lizard_mover_buffer_size, sizeof(lizard_mover_buffer_size), 0);
-
-    // Allocate the buffer based on the received size
-    char *lizard_mover_buffer = malloc(lizard_mover_buffer_size);
-    if (!lizard_mover_buffer)
-    {
-        exit(1);
-    }
-
-    zmq_recv(requester, lizard_mover_buffer, lizard_mover_buffer_size, 0);
-
-    // Deserialize the lizard mover from the buffer
-    lizard_mover *lizard_payload = malloc(sizeof(lizard_mover));
-    deserialize_lizard_mover(lizard_payload, lizard_mover_buffer);
-
-    // ---------- END RECEIVE ROACH AND LIZARD MOVER DATA FROM SERVER ----------
-
     // Creates a window and draws a border
     window_data *game_window;
-    window_init_with_matrix(&game_window, WINDOW_SIZE, WINDOW_SIZE, buffer);
+    window_init_with_matrix(&game_window, WINDOW_SIZE, WINDOW_SIZE);
+    memcpy(game_window->matrix->cells, window_data_struct->matrix->cells, sizeof(layer_cell) * WINDOW_SIZE * WINDOW_SIZE);
+
     draw_entire_matrix(game_window);
 
     // Create a new window for the scores
     WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
 
-    // Include not serialized components into the movers
-    roach_payload->game_window = game_window;
-    lizard_payload->game_window = game_window;
-    lizard_payload->should_use_responder = 0;
-    roach_payload->should_use_responder = 0;
-
-    // Create dummy pointer to eaten roaches
-    roach **eaten_roaches = (roach **)malloc(sizeof(roach *) * MAX_SLOTS_ALLOWED);
-    int eaten_roaches_count = 0;
-
-    roach_payload->eaten_roaches = eaten_roaches;
-    roach_payload->amount_eaten_roaches = &eaten_roaches_count;
-    lizard_payload->eaten_roaches = eaten_roaches;
-    lizard_payload->amount_eaten_roaches = &eaten_roaches_count;
-    roach_payload->lizards = lizard_payload->lizards;
-    lizard_payload->roaches = roach_payload->roaches;
-
     while (1)
     {
         // Receive the field update
         char *type = s_recv(subscriber);
-        // ---------- START PRINTING SCORES ----------
+
+        // ---------- START RECEIVE FIELD UPDATE FROM SERVER ----------
+        zmq_msg_init(&message);
+        if (zmq_msg_recv(&message, subscriber, 0) == -1)
+        {
+            printf("Error receiving message: %s\n", zmq_strerror(errno));
+            zmq_close(requester);
+            zmq_close(subscriber);
+            zmq_ctx_destroy(context);
+            exit(1);
+        }
+
+        // Get the size of the received message
+        size_t size = zmq_msg_size(&message);
+        void *buffer = zmq_msg_data(&message);
+
+        // Deserialize the field update from the buffer
+        FieldUpdateProto *field_update_proto = field_update_proto__unpack(NULL, size, buffer);
+        if (field_update_proto == NULL)
+        {
+            printf("Error unpacking message\n");
+            zmq_close(requester);
+            zmq_close(subscriber);
+            zmq_ctx_destroy(context);
+            exit(1);
+        }
+        // Convert the field update proto to a field update
+        field_update *field_update_struct = malloc(sizeof(field_update));
+        proto_field_update_to_field_update(field_update_proto, field_update_struct);
+
+        // Update the matrix with the received field update
+        update_matrix_cells(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
+
+        // Draw the scores
         // Print the scores in the score window
         int i, j;
-        for (i = 0, j = 0; j < *lizard_payload->num_lizards; i++)
+        for (i = 0, j = 0; j < field_update_struct->size_of_scores; i++)
         {
-            if (lizard_payload->lizards[i].ch == -1)
-                continue;
 
             // j is the line number and only increments when a lizard is printed
-            mvwprintw(score_window, j, 0, "Lizard id %c: Score %d", (char)lizard_payload->lizards[i].ch, lizard_payload->lizards[i].score);
+            mvwprintw(score_window, j, 0, "Lizard: Score %d", field_update_struct->scores[i]);
             j++;
 
             // Clear the rest of the line
@@ -261,82 +277,12 @@ int main(int argc, char *argv[])
         // Update the score window
         wrefresh(score_window);
 
-        // ---------- END PRINTING SCORES ----------
-
-        // ---------- START RECEIVE FIELD UPDATE FROM SERVER ----------
-
-        if (strcmp(type, "field_update_movement") == 0)
-        {
-            log_write("Received field update movement\n");
-            field_update_movement *field_update_message = malloc(sizeof(field_update_movement));
-            zmq_recv(subscriber, field_update_message, sizeof(field_update_movement), 0);
-
-            // Parse the field_update_message
-            message_to_server recv_message = field_update_message->message;
-            // Point movers to the message received
-            roach_payload->recv_message = &recv_message;
-            lizard_payload->recv_message = &recv_message;
-
-            switch (recv_message.client_id)
-            {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_movement(lizard_payload);
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                int should_process_movement = refresh_eaten_roach_for_display(roach_payload, field_update_message->new_x, field_update_message->new_y, field_update_message->is_eaten);
-                if (should_process_movement)
-                    process_roach_movement(roach_payload);
-                break;
-            }
-
-            free(field_update_message);
-        }
-        else if (strcmp(type, "field_update_connect") == 0)
-        {
-            log_write("Received field update connect\n");
-            field_update_connect *field_update_message = malloc(sizeof(field_update_connect));
-            zmq_recv(subscriber, field_update_message, sizeof(field_update_connect), 0);
-            message_to_server recv_message = field_update_message->message;
-            roach_payload->recv_message = &recv_message;
-            lizard_payload->recv_message = &recv_message;
-            switch (field_update_message->message.client_id)
-            {
-            case LIZARD:
-                log_write("Processing lizard connect message\n");
-                process_lizard_inject_connect(lizard_payload, field_update_message->connected_lizard, field_update_message->position_in_array);
-                break;
-            case ROACH:
-                log_write("Processing roach connect message\n");
-                process_roach_inject_connect(roach_payload, field_update_message->connected_roach, field_update_message->position_in_array);
-                break;
-            }
-
-            free(field_update_message);
-        }
-        else if (strcmp(type, "field_update_disconnect") == 0)
-        {
-            log_write("Received field update disconnect\n");
-            field_update_disconnect *field_update_message = malloc(sizeof(field_update_disconnect));
-            zmq_recv(subscriber, field_update_message, sizeof(field_update_disconnect), 0);
-            message_to_server recv_message = field_update_message->message;
-            roach_payload->recv_message = &recv_message;
-            lizard_payload->recv_message = &recv_message;
-            switch (field_update_message->message.client_id)
-            {
-            case LIZARD:
-                log_write("Processing lizard message\n");
-                process_lizard_disconnect(lizard_payload);
-                break;
-            case ROACH:
-                log_write("Processing roach message\n");
-                process_roach_disconnect(roach_payload);
-                break;
-            }
-            free(field_update_message);
-        }
+        draw_updated_matrix(game_window, field_update_struct->updated_cells, field_update_struct->updated_cell_indexes, field_update_struct->size_of_updated_cells);
+        //  ---------- END RECEIVE FIELD UPDATE FROM SERVER ----------
         free(type);
+        zmq_msg_close(&message);
+        field_update_proto__free_unpacked(field_update_proto, NULL);
+        free(field_update_struct);
     }
 
     endwin();

@@ -210,68 +210,151 @@ void wasp_to_proto_wasp(WaspProto *proto, wasp *wasp)
     proto->y = wasp->y;
 }
 
-// Convert FieldUpdateMovementProto to FieldUpdateMovement
-void proto_field_update_movement_to_field_update_movement(FieldUpdateMovementProto *proto, field_update_movement *field_update_movement)
+// Convert WindowDataProto to WindowData
+void proto_window_matrix_to_window_matrix(WindowMatrixProto *proto, window_matrix *matrix)
 {
-    field_update_movement->num_roaches = proto->num_roaches;
-    field_update_movement->num_lizards = proto->num_lizards;
-    proto_message_to_server_to_message_to_server(proto->message, &field_update_movement->message);
-    field_update_movement->new_x = proto->new_x;
-    field_update_movement->new_y = proto->new_y;
-    proto_direction_to_direction_t(&proto->prev_direction, &field_update_movement->prev_direction);
-    field_update_movement->is_eaten = proto->is_eaten;
+    matrix->width = proto->width;
+    matrix->height = proto->height;
+    matrix->cells = malloc(sizeof(layer_cell) * matrix->width * matrix->height);
+
+    for (int i = 0; i < matrix->width * matrix->height; i++)
+    {
+        convert_layer_cell_proto_to_layer_cell(proto->cells[i], &matrix->cells[i]);
+    }
 }
 
-// Convert FieldUpdateMovement to FieldUpdateMovementProto
-void field_update_movement_to_proto_field_update_movement(FieldUpdateMovementProto *proto, field_update_movement *field_update_movement)
+// Convert WindowData to WindowDataProto
+void window_matrix_to_proto_window_matrix(WindowMatrixProto *proto, window_matrix *matrix)
 {
-    proto->num_roaches = field_update_movement->num_roaches;
-    proto->num_lizards = field_update_movement->num_lizards;
-    message_to_server_to_proto_message_to_server(proto->message, &field_update_movement->message);
-    proto->new_x = field_update_movement->new_x;
-    proto->new_y = field_update_movement->new_y;
-    direction_t_to_proto_direction(&proto->prev_direction, &field_update_movement->prev_direction);
-    proto->is_eaten = field_update_movement->is_eaten;
+    proto->width = matrix->width;
+    proto->height = matrix->height;
+    proto->cells = malloc(sizeof(LayerCellProto *) * proto->width * proto->height);
+
+    for (int i = 0; i < proto->width * proto->height; i++)
+    {
+        proto->cells[i] = malloc(sizeof(LayerCellProto));
+        layer_cell_proto__init(proto->cells[i]);
+        convert_layer_cell_to_layer_cell_proto(proto->cells[i], &matrix->cells[i]);
+    }
 }
 
-// Convert FieldUpdateConnectProto to FieldUpdateConnect
-void proto_field_update_connect_to_field_update_connect(FieldUpdateConnectProto *proto, field_update_connect *field_update_connect)
+// Convert WindowDataProto to WindowData
+void proto_window_data_to_window_data(WindowDataProto *proto, window_data *data)
 {
-    field_update_connect->client_id = proto->client_id;
-    field_update_connect->position_in_array = proto->position_in_array;
-    proto_lizard_to_lizard(proto->connected_lizard, &field_update_connect->connected_lizard);
-    proto_roach_to_roach(proto->connected_roach, &field_update_connect->connected_roach);
-    proto_message_to_server_to_message_to_server(proto->message, &field_update_connect->message);
+    proto_window_matrix_to_window_matrix(proto->matrix, data->matrix);
 }
 
-// Convert FieldUpdateConnect to FieldUpdateConnectProto
-void field_update_connect_to_proto_field_update_connect(FieldUpdateConnectProto *proto, field_update_connect *field_update_connect)
+// Convert WindowData to WindowDataProto
+void window_data_to_proto_window_data(WindowDataProto *proto, window_data *data)
 {
-    proto->client_id = field_update_connect->client_id;
-    proto->position_in_array = field_update_connect->position_in_array;
-    lizard_to_proto_lizard(proto->connected_lizard, &field_update_connect->connected_lizard);
-    roach_to_proto_roach(proto->connected_roach, &field_update_connect->connected_roach);
-    message_to_server_to_proto_message_to_server(proto->message, &field_update_connect->message);
+    proto->matrix = malloc(sizeof(WindowMatrixProto));
+    window_matrix_proto__init(proto->matrix);
+    proto->matrix->width = data->matrix->width;
+    proto->matrix->height = data->matrix->height;
+
+    proto->matrix->n_cells = data->matrix->width * data->matrix->height;
+    proto->matrix->cells = malloc(proto->matrix->n_cells * sizeof(LayerCellProto *));
+
+    for (size_t i = 0; i < proto->matrix->n_cells; i++)
+    {
+        proto->matrix->cells[i] = malloc(sizeof(LayerCellProto));
+        layer_cell_proto__init(proto->matrix->cells[i]);
+        convert_layer_cell_to_layer_cell_proto(proto->matrix->cells[i], &data->matrix->cells[i]);
+    }
 }
 
-// Convert FieldUpdateDisconnectProto to FieldUpdateDisconnect
-void proto_field_update_disconnect_to_field_update_disconnect(FieldUpdateDisconnectProto *proto, field_update_disconnect *field_update_disconnect)
+// Convert LayerCellProto to LayerCell
+void convert_layer_cell_proto_to_layer_cell(LayerCellProto *proto, layer_cell *cell)
 {
-    field_update_disconnect->client_id = proto->client_id;
-    field_update_disconnect->position_in_array = proto->position_in_array;
-    proto_message_to_server_to_message_to_server(proto->message, &field_update_disconnect->message);
+    cell->top = proto->top;
+    cell->capacity = proto->capacity;
+    cell->stack = malloc(sizeof(layer_char) * cell->capacity);
+    if (cell->stack)
+    {
+        for (int i = 0; i <= cell->top; i++)
+        {
+            cell->stack[i].ch = (char)proto->stack[i]->ch;
+            cell->stack[i].client_id = proto->stack[i]->client_id;
+            cell->stack[i].position_in_array = proto->stack[i]->position_in_array;
+        }
+    }
 }
 
-// Convert FieldUpdateDisconnect to FieldUpdateDisconnectProto
-void field_update_disconnect_to_proto_field_update_disconnect(FieldUpdateDisconnectProto *proto, field_update_disconnect *field_update_disconnect)
+// Convert LayerCell to LayerCellProto
+void convert_layer_cell_to_layer_cell_proto(LayerCellProto *proto, layer_cell *cell)
 {
-    proto->client_id = field_update_disconnect->client_id;
-    proto->position_in_array = field_update_disconnect->position_in_array;
-    message_to_server_to_proto_message_to_server(proto->message, &field_update_disconnect->message);
+    proto->top = cell->top;
+    proto->capacity = cell->capacity;
+
+    proto->n_stack = cell->top + 1;
+    proto->stack = malloc(sizeof(LayerCharProto *) * proto->n_stack);
+
+    for (size_t i = 0; i < proto->n_stack; i++)
+    {
+        proto->stack[i] = malloc(sizeof(LayerCharProto));
+        layer_char_proto__init(proto->stack[i]);
+
+        // Assuming ch is a single character. If it's a string, allocate appropriately.
+        proto->stack[i]->ch = (int32_t)cell->stack[i].ch;
+
+        proto->stack[i]->client_id = cell->stack[i].client_id;
+        proto->stack[i]->position_in_array = cell->stack[i].position_in_array;
+    }
 }
 
-// Convert RoachMoverMessageProto to RoachMoverMessage
+// Convert FieldUpdateProto to FieldUpdate
+void proto_field_update_to_field_update(FieldUpdateProto *proto, field_update *field_update)
+{
+    field_update->size_of_updated_cells = proto->size_of_updated_cells;
+    field_update->size_of_scores = proto->size_of_scores;
 
-// Convert LizardMoverMessageProto to LizardMoverMessage
+    field_update->updated_cell_indexes = (int *)malloc(field_update->size_of_updated_cells * sizeof(int));
+    if (field_update->updated_cell_indexes)
+    {
+        memcpy(field_update->updated_cell_indexes, proto->updated_cell_indexes, proto->size_of_updated_cells * sizeof(int));
+    }
 
-// Convert WaspMoverMessageProto to WaspMoverMessage
+    // Allocate and copy for scores
+    field_update->scores = malloc(proto->size_of_scores * sizeof(int));
+    if (field_update->scores)
+    {
+        memcpy(field_update->scores, proto->scores, proto->size_of_scores * sizeof(int));
+    }
+
+    // Handle updated_cells conversion
+    field_update->updated_cells = malloc(sizeof(layer_cell) * field_update->size_of_updated_cells);
+    if (field_update->updated_cells)
+    {
+        for (int i = 0; i < field_update->size_of_updated_cells; i++)
+        {
+            convert_layer_cell_proto_to_layer_cell(proto->updated_cells[i], &field_update->updated_cells[i]);
+        }
+    }
+}
+
+// Convert FieldUpdate to FieldUpdateProto
+void field_update_to_proto_field_update(FieldUpdateProto *proto, field_update *field_update)
+{
+    proto->size_of_updated_cells = field_update->size_of_updated_cells;
+    proto->size_of_scores = field_update->size_of_scores;
+
+    // Allocate memory and copy for updated_cell_indexes
+    proto->n_updated_cell_indexes = field_update->size_of_updated_cells;
+    proto->updated_cell_indexes = malloc(proto->n_updated_cell_indexes * sizeof(int32_t));
+    memcpy(proto->updated_cell_indexes, field_update->updated_cell_indexes, proto->n_updated_cell_indexes * sizeof(int32_t));
+
+    // Allocate memory and copy for scores
+    proto->n_scores = field_update->size_of_scores;
+    proto->scores = malloc(proto->n_scores * sizeof(int32_t));
+    memcpy(proto->scores, field_update->scores, proto->n_scores * sizeof(int32_t));
+
+    // Handle updated_cells conversion
+    proto->n_updated_cells = field_update->size_of_updated_cells;
+    proto->updated_cells = malloc(sizeof(LayerCellProto *) * proto->n_updated_cells);
+    for (size_t i = 0; i < proto->n_updated_cells; i++)
+    {
+        proto->updated_cells[i] = malloc(sizeof(LayerCellProto));
+        layer_cell_proto__init(proto->updated_cells[i]);
+        convert_layer_cell_to_layer_cell_proto(proto->updated_cells[i], &field_update->updated_cells[i]);
+    }
+}

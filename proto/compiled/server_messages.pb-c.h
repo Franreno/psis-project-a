@@ -19,12 +19,6 @@ typedef struct _MessageToServerProto MessageToServerProto;
 typedef struct _LizardProto LizardProto;
 typedef struct _RoachProto RoachProto;
 typedef struct _WaspProto WaspProto;
-typedef struct _FieldUpdateMovementProto FieldUpdateMovementProto;
-typedef struct _FieldUpdateConnectProto FieldUpdateConnectProto;
-typedef struct _FieldUpdateDisconnectProto FieldUpdateDisconnectProto;
-typedef struct _RoachMoverMessageProto RoachMoverMessageProto;
-typedef struct _LizardMoverMessageProto LizardMoverMessageProto;
-typedef struct _WaspMoverMessageProto WaspMoverMessageProto;
 
 
 /* --- enums --- */
@@ -132,114 +126,6 @@ struct  _WaspProto
     , 0, 0, 0 }
 
 
-struct  _FieldUpdateMovementProto
-{
-  ProtobufCMessage base;
-  int32_t num_roaches;
-  int32_t num_lizards;
-  MessageToServerProto *message;
-  int32_t new_x;
-  int32_t new_y;
-  DirectionProto prev_direction;
-  protobuf_c_boolean is_eaten;
-};
-#define FIELD_UPDATE_MOVEMENT_PROTO__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&field_update_movement_proto__descriptor) \
-    , 0, 0, NULL, 0, 0, DIRECTION_PROTO__UP, 0 }
-
-
-struct  _FieldUpdateConnectProto
-{
-  ProtobufCMessage base;
-  int32_t client_id;
-  int32_t position_in_array;
-  LizardProto *connected_lizard;
-  RoachProto *connected_roach;
-  MessageToServerProto *message;
-};
-#define FIELD_UPDATE_CONNECT_PROTO__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&field_update_connect_proto__descriptor) \
-    , 0, 0, NULL, NULL, NULL }
-
-
-struct  _FieldUpdateDisconnectProto
-{
-  ProtobufCMessage base;
-  int32_t client_id;
-  int32_t position_in_array;
-  MessageToServerProto *message;
-};
-#define FIELD_UPDATE_DISCONNECT_PROTO__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&field_update_disconnect_proto__descriptor) \
-    , 0, 0, NULL }
-
-
-struct  _RoachMoverMessageProto
-{
-  ProtobufCMessage base;
-  /*
-   * Array of Roach
-   */
-  size_t n_roaches;
-  RoachProto **roaches;
-  /*
-   * Number of roaches
-   */
-  int32_t num_roaches;
-  /*
-   * Slot roaches
-   */
-  int32_t slot_roaches;
-};
-#define ROACH_MOVER_MESSAGE_PROTO__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&roach_mover_message_proto__descriptor) \
-    , 0,NULL, 0, 0 }
-
-
-struct  _LizardMoverMessageProto
-{
-  ProtobufCMessage base;
-  /*
-   * Array of lizards
-   */
-  size_t n_lizards;
-  LizardProto **lizards;
-  /*
-   * Number of lizards
-   */
-  int32_t num_lizards;
-  /*
-   * Slot lizards
-   */
-  int32_t slot_lizards;
-};
-#define LIZARD_MOVER_MESSAGE_PROTO__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&lizard_mover_message_proto__descriptor) \
-    , 0,NULL, 0, 0 }
-
-
-struct  _WaspMoverMessageProto
-{
-  ProtobufCMessage base;
-  /*
-   * Array of Wasp
-   */
-  size_t n_wasps;
-  WaspProto **wasps;
-  /*
-   * Number of wasps
-   */
-  int32_t num_wasps;
-  /*
-   * Slot roaches
-   */
-  int32_t slot_wasps;
-};
-#define WASP_MOVER_MESSAGE_PROTO__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&wasp_mover_message_proto__descriptor) \
-    , 0,NULL, 0, 0 }
-
-
 /* MessageToServerProto methods */
 void   message_to_server_proto__init
                      (MessageToServerProto         *message);
@@ -316,120 +202,6 @@ WaspProto *
 void   wasp_proto__free_unpacked
                      (WaspProto *message,
                       ProtobufCAllocator *allocator);
-/* FieldUpdateMovementProto methods */
-void   field_update_movement_proto__init
-                     (FieldUpdateMovementProto         *message);
-size_t field_update_movement_proto__get_packed_size
-                     (const FieldUpdateMovementProto   *message);
-size_t field_update_movement_proto__pack
-                     (const FieldUpdateMovementProto   *message,
-                      uint8_t             *out);
-size_t field_update_movement_proto__pack_to_buffer
-                     (const FieldUpdateMovementProto   *message,
-                      ProtobufCBuffer     *buffer);
-FieldUpdateMovementProto *
-       field_update_movement_proto__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   field_update_movement_proto__free_unpacked
-                     (FieldUpdateMovementProto *message,
-                      ProtobufCAllocator *allocator);
-/* FieldUpdateConnectProto methods */
-void   field_update_connect_proto__init
-                     (FieldUpdateConnectProto         *message);
-size_t field_update_connect_proto__get_packed_size
-                     (const FieldUpdateConnectProto   *message);
-size_t field_update_connect_proto__pack
-                     (const FieldUpdateConnectProto   *message,
-                      uint8_t             *out);
-size_t field_update_connect_proto__pack_to_buffer
-                     (const FieldUpdateConnectProto   *message,
-                      ProtobufCBuffer     *buffer);
-FieldUpdateConnectProto *
-       field_update_connect_proto__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   field_update_connect_proto__free_unpacked
-                     (FieldUpdateConnectProto *message,
-                      ProtobufCAllocator *allocator);
-/* FieldUpdateDisconnectProto methods */
-void   field_update_disconnect_proto__init
-                     (FieldUpdateDisconnectProto         *message);
-size_t field_update_disconnect_proto__get_packed_size
-                     (const FieldUpdateDisconnectProto   *message);
-size_t field_update_disconnect_proto__pack
-                     (const FieldUpdateDisconnectProto   *message,
-                      uint8_t             *out);
-size_t field_update_disconnect_proto__pack_to_buffer
-                     (const FieldUpdateDisconnectProto   *message,
-                      ProtobufCBuffer     *buffer);
-FieldUpdateDisconnectProto *
-       field_update_disconnect_proto__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   field_update_disconnect_proto__free_unpacked
-                     (FieldUpdateDisconnectProto *message,
-                      ProtobufCAllocator *allocator);
-/* RoachMoverMessageProto methods */
-void   roach_mover_message_proto__init
-                     (RoachMoverMessageProto         *message);
-size_t roach_mover_message_proto__get_packed_size
-                     (const RoachMoverMessageProto   *message);
-size_t roach_mover_message_proto__pack
-                     (const RoachMoverMessageProto   *message,
-                      uint8_t             *out);
-size_t roach_mover_message_proto__pack_to_buffer
-                     (const RoachMoverMessageProto   *message,
-                      ProtobufCBuffer     *buffer);
-RoachMoverMessageProto *
-       roach_mover_message_proto__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   roach_mover_message_proto__free_unpacked
-                     (RoachMoverMessageProto *message,
-                      ProtobufCAllocator *allocator);
-/* LizardMoverMessageProto methods */
-void   lizard_mover_message_proto__init
-                     (LizardMoverMessageProto         *message);
-size_t lizard_mover_message_proto__get_packed_size
-                     (const LizardMoverMessageProto   *message);
-size_t lizard_mover_message_proto__pack
-                     (const LizardMoverMessageProto   *message,
-                      uint8_t             *out);
-size_t lizard_mover_message_proto__pack_to_buffer
-                     (const LizardMoverMessageProto   *message,
-                      ProtobufCBuffer     *buffer);
-LizardMoverMessageProto *
-       lizard_mover_message_proto__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   lizard_mover_message_proto__free_unpacked
-                     (LizardMoverMessageProto *message,
-                      ProtobufCAllocator *allocator);
-/* WaspMoverMessageProto methods */
-void   wasp_mover_message_proto__init
-                     (WaspMoverMessageProto         *message);
-size_t wasp_mover_message_proto__get_packed_size
-                     (const WaspMoverMessageProto   *message);
-size_t wasp_mover_message_proto__pack
-                     (const WaspMoverMessageProto   *message,
-                      uint8_t             *out);
-size_t wasp_mover_message_proto__pack_to_buffer
-                     (const WaspMoverMessageProto   *message,
-                      ProtobufCBuffer     *buffer);
-WaspMoverMessageProto *
-       wasp_mover_message_proto__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   wasp_mover_message_proto__free_unpacked
-                     (WaspMoverMessageProto *message,
-                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*MessageToServerProto_Closure)
@@ -444,24 +216,6 @@ typedef void (*RoachProto_Closure)
 typedef void (*WaspProto_Closure)
                  (const WaspProto *message,
                   void *closure_data);
-typedef void (*FieldUpdateMovementProto_Closure)
-                 (const FieldUpdateMovementProto *message,
-                  void *closure_data);
-typedef void (*FieldUpdateConnectProto_Closure)
-                 (const FieldUpdateConnectProto *message,
-                  void *closure_data);
-typedef void (*FieldUpdateDisconnectProto_Closure)
-                 (const FieldUpdateDisconnectProto *message,
-                  void *closure_data);
-typedef void (*RoachMoverMessageProto_Closure)
-                 (const RoachMoverMessageProto *message,
-                  void *closure_data);
-typedef void (*LizardMoverMessageProto_Closure)
-                 (const LizardMoverMessageProto *message,
-                  void *closure_data);
-typedef void (*WaspMoverMessageProto_Closure)
-                 (const WaspMoverMessageProto *message,
-                  void *closure_data);
 
 /* --- services --- */
 
@@ -475,12 +229,6 @@ extern const ProtobufCMessageDescriptor message_to_server_proto__descriptor;
 extern const ProtobufCMessageDescriptor lizard_proto__descriptor;
 extern const ProtobufCMessageDescriptor roach_proto__descriptor;
 extern const ProtobufCMessageDescriptor wasp_proto__descriptor;
-extern const ProtobufCMessageDescriptor field_update_movement_proto__descriptor;
-extern const ProtobufCMessageDescriptor field_update_connect_proto__descriptor;
-extern const ProtobufCMessageDescriptor field_update_disconnect_proto__descriptor;
-extern const ProtobufCMessageDescriptor roach_mover_message_proto__descriptor;
-extern const ProtobufCMessageDescriptor lizard_mover_message_proto__descriptor;
-extern const ProtobufCMessageDescriptor wasp_mover_message_proto__descriptor;
 
 PROTOBUF_C__END_DECLS
 
