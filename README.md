@@ -44,7 +44,9 @@ To run the wasps client execute:
 ## Examples
 
 Example one
-https://github.com/Franreno/psis-project-a/assets/67326251/91ec9add-54a6-4459-a4ba-3f2ab851eb4f
+
+https://github.com/Franreno/psis-project-a/assets/67326251/bbecf630-e828-4f33-a95e-e184c9a09cd4
+
 
 Example with python client
 
