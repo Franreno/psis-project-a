@@ -39,3 +39,19 @@ To run the wasps client execute:
 ```
 ./wasps-client
 ```
+
+
+## Examples
+
+Example one
+https://github.com/Franreno/psis-project-a/assets/67326251/91ec9add-54a6-4459-a4ba-3f2ab851eb4f
+
+Example with python client
+
+https://github.com/Franreno/psis-project-a/assets/67326251/71b9c516-2d47-4933-bd0d-3356b008d979
+
+
+
+
+
+
