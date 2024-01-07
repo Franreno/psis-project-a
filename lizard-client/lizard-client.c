@@ -39,6 +39,32 @@ int create_and_connect_sockets(char *req_server_socket_address, char *sub_server
         zmq_ctx_destroy(*context);
         return -1;
     }
+    // In your create_and_connect_sockets function:
+    int rc = zmq_setsockopt(*requester, ZMQ_CURVE_SECRETKEY, CLIENT_SECRET_KEY, 40);
+    if (rc != 0)
+    {
+        printf("Failed to set ZMQ_CURVE_SECRETKEY: %s\n", zmq_strerror(errno));
+        zmq_close(*requester);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+    rc = zmq_setsockopt(*requester, ZMQ_CURVE_PUBLICKEY, CLIENT_PUBLIC_KEY, 40);
+    if (rc != 0)
+    {
+        printf("Failed to set ZMQ_CURVE_PUBLICKEY: %s\n", zmq_strerror(errno));
+        zmq_close(*requester);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    rc = zmq_setsockopt(*requester, ZMQ_CURVE_SERVERKEY, SERVER_PUBLIC_KEY, 40);
+    if (rc != 0)
+    {
+        printf("Failed to set ZMQ_CURVE_SERVERKEY: %s\n", zmq_strerror(errno));
+        zmq_close(*requester);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
 
     // Create a subscriber socket to send messages to the display app
     *subscriber = zmq_socket(*context, ZMQ_SUB);
@@ -49,6 +75,10 @@ int create_and_connect_sockets(char *req_server_socket_address, char *sub_server
         zmq_ctx_destroy(*context);
         return -1;
     }
+
+    zmq_setsockopt(*subscriber, ZMQ_CURVE_SECRETKEY, CLIENT_SECRET_KEY, 40);
+    zmq_setsockopt(*subscriber, ZMQ_CURVE_PUBLICKEY, CLIENT_PUBLIC_KEY, 40);
+    zmq_setsockopt(*subscriber, ZMQ_CURVE_SERVERKEY, SERVER_PUBLIC_KEY, 40);
 
     // Connect to the server using ZMQ_REQ
     if (zmq_connect(*requester, req_server_socket_address) != 0)
@@ -72,15 +102,9 @@ int create_and_connect_sockets(char *req_server_socket_address, char *sub_server
     return 0;
 }
 
-/**
- * @brief - Connect a lizard to the server
- *
- * @param requester  - ZMQ socket
- * @param send_message - Message to send to the server
- * @return int - Lizard id if successful, -1 otherwise
- */
 int connect_lizard(void *requester, message_to_server *send_message)
 {
+
     int lizard_id;
 
     send_message->client_id = LIZARD;
@@ -88,7 +112,6 @@ int connect_lizard(void *requester, message_to_server *send_message)
     send_message->value = CONNECT;
 
     // Send a message to the server to connect a lizard
-    printf("Attempting to connect lizard");
 
     // Start of proto encoder
     MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
@@ -115,11 +138,8 @@ int connect_lizard(void *requester, message_to_server *send_message)
     zmq_recv(requester, &lizard_id, sizeof(int), 0);
     if (lizard_id < 0)
     {
-        printf("Failed to connect lizard! No more slots available\n");
         return -1;
     }
-    printf("Lizard connected with id: %d\n", lizard_id);
-
     return lizard_id;
 }
 
@@ -487,6 +507,7 @@ int main(int argc, char *argv[])
     message_to_server send_message;
 
     // Create lizard and connect it to the server
+    printf("Creating lizard...\n");
     int lizard_id = connect_lizard(requester, &send_message);
     if (lizard_id < 0)
     {
@@ -494,6 +515,7 @@ int main(int argc, char *argv[])
         zmq_ctx_destroy(context);
         return -1;
     }
+    printf("Lizard created!\n");
 
     // Get the current state of the field
     printf("Waiting for field update...\n");

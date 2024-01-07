@@ -1,8 +1,8 @@
 #ifndef REMOTE_CHAR_H
 #define REMOTE_CHAR_H
 
-#define DEFAULT_SERVER_SOCKET_ADDRESS "ipc:///tmp/server"
-#define DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS "tcp://*:5556"
+#define DEFAULT_SERVER_SOCKET_ADDRESS "tcp://127.0.0.1:8080"
+#define DEFAULT_PUBLISH_SERVER_SOCKET_ADDRESS "tcp://127.0.0.1:5556"
 #define DEFAULT_SUBS_SERVER_SOCKET_ADDRESS "tcp://127.0.0.1:5556"
 #define DEFAULT_SERVER_ADDRESS "localhost"
 #define DEFAULT_SERVER_PORT "5555"
@@ -19,6 +19,10 @@
 #define MAX_LIZARDS_ALLOWED 10
 #define MAX_LIZARD_SCORE 50
 #define WASP_DAMAGE 10
+#define SERVER_PUBLIC_KEY "V&w@X7%uq)Zwxd$GxS]lnS?TS*QU9MCv#2]W3Lq6"
+#define SERVER_PRIVATE_KEY "c[2g>X[5[sC?:5:DA6pCh]KWl+!4@ORatbOOydCg"
+#define CLIENT_PUBLIC_KEY "}aje@MErJksdleOOiqh#A}h}hs1x}PB%]*UeNaJ-"
+#define CLIENT_SECRET_KEY "R5[z@[[:)5WXA=^J}l4ZOiy+h[j&j@<Z=xmJNjnI"
 
 #include <unistd.h>
 #include <sys/types.h>
