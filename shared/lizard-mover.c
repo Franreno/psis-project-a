@@ -6,7 +6,6 @@
  * @param lizard_payload - Pointer to the wasp mover
  * @param recv_message - Message received from the server
  * @param lizards - Array of lizards
- * @param responder - ZMQ socket
  * @param num_lizards - Number of lizards
  * @param slot_lizards - Number of available slots
  * @param game_window - Game window
@@ -14,7 +13,6 @@
 void new_lizard_mover(lizard_mover **lizard_payload,
                       message_to_server *recv_message,
                       lizard *lizards,
-                      void *responder,
                       int *num_lizards,
                       int *slot_lizards,
                       window_data *game_window)
@@ -23,7 +21,6 @@ void new_lizard_mover(lizard_mover **lizard_payload,
     (*lizard_payload)->slot_lizards = slot_lizards;
     (*lizard_payload)->lizards = lizards;
     (*lizard_payload)->game_window = game_window;
-    (*lizard_payload)->responder = responder;
     (*lizard_payload)->recv_message = recv_message;
 }
 
@@ -37,7 +34,9 @@ void process_lizard_message(lizard_mover *lizard_payload)
     switch (lizard_payload->recv_message->type)
     {
     case CONNECT:
+        printf("Lizard connect\n");
         process_lizard_connect(lizard_payload);
+        printf("Lizard connect done\n");
         break;
 
     case MOVEMENT:
@@ -50,26 +49,29 @@ void process_lizard_message(lizard_mover *lizard_payload)
     }
 }
 
-/**
- * @brief - Proccess a lizard connection to the server
- *
- * @param lizard_payload  - Pointer to the lizard mover
- */
 void process_lizard_connect(lizard_mover *lizard_payload)
 {
+    printf("Starting process_lizard_connect\n");
+
     int no_slots = -1;
     int new_lizard_id;
 
-    // If there are not available slots, refuse to add lizard
     if (*(lizard_payload->slot_lizards) <= 0)
     {
+        printf("No available slots\n");
+
         if (lizard_payload->should_use_responder)
+        {
+            printf("Sending refusal to client\n");
+            // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
             zmq_send(lizard_payload->responder, &no_slots, sizeof(int), 0);
+        }
 
         return;
     }
 
-    // If there is an empty slot, add the lizard to the array on that slot, if not, add after the last lizard
+    printf("Finding empty slot for new lizard\n");
+
     for (int i = 0; i < MAX_LIZARDS_ALLOWED; i++)
     {
         if (lizard_payload->lizards[i].ch == (char)-1)
@@ -81,11 +83,13 @@ void process_lizard_connect(lizard_mover *lizard_payload)
             new_lizard_id = *(lizard_payload->num_lizards);
     }
 
-    // Increment the number of lizards and decrement the available slots
+    printf("New lizard ID: %d\n", new_lizard_id);
+
     (*(lizard_payload->num_lizards))++;
     (*(lizard_payload->slot_lizards))--;
 
-    // Initialize the lizard
+    printf("Initializing new lizard\n");
+
     lizard_payload->lizards[new_lizard_id].ch = 'A' + new_lizard_id;
     lizard_payload->lizards[new_lizard_id].score = 0;
     lizard_payload->lizards[new_lizard_id].is_winner = 0;
@@ -97,29 +101,42 @@ void process_lizard_connect(lizard_mover *lizard_payload)
     int new_y;
     layer_cell *cell;
 
+    printf("Finding valid position for new lizard\n");
+
     do
     {
-        // Get a random position
         new_x = rand() % (WINDOW_SIZE - 2) + 1;
         new_y = rand() % (WINDOW_SIZE - 2) + 1;
 
-        // Get the stack info of the new position
         cell = get_cell(lizard_payload->game_window->matrix, new_x, new_y);
     } while (cell->stack[cell->top].client_id == LIZARD || cell->stack[cell->top].client_id == ROACH || cell->stack[cell->top].client_id == WASP);
 
-    // Once the position is valid, initialize the lizard in the position
+    printf("New lizard position: (%d, %d)\n", new_x, new_y);
+
     lizard_payload->lizards[new_lizard_id].x = new_x;
     lizard_payload->lizards[new_lizard_id].y = new_y;
 
-    // Draw the lizard in the random position
+    printf("Drawing new lizard\n");
+
     window_draw(lizard_payload->game_window, lizard_payload->lizards[new_lizard_id].x, lizard_payload->lizards[new_lizard_id].y, (lizard_payload->lizards[new_lizard_id].ch) | A_BOLD, LIZARD, new_lizard_id);
 
-    // Draw the tail
+    printf("Drawing lizard tail\n");
+
     draw_lizard_tail(lizard_payload, new_lizard_id, lizard_payload->lizards[new_lizard_id].previous_direction);
 
-    // Reply to lizard client indicating position of the new lizard in the array
     if (lizard_payload->should_use_responder)
-        zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0);
+    {
+        // if (zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE) == -1)
+        // {
+        //     printf("Error sending identity: %s\n", zmq_strerror(zmq_errno()));
+        // }
+        if (zmq_send(lizard_payload->responder, &new_lizard_id, sizeof(int), 0) == -1)
+        {
+            printf("Error sending lizard ID: %s\n", zmq_strerror(zmq_errno()));
+        }
+    }
+
+    printf("Finished process_lizard_connect\n");
 }
 
 /**
@@ -368,7 +385,10 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     if (lizard_id < 0 || lizard_id >= MAX_LIZARDS_ALLOWED)
     {
         if (lizard_payload->should_use_responder)
+        {
+            // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
             zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
+        }
 
         return;
     }
@@ -377,7 +397,10 @@ void process_lizard_movement(lizard_mover *lizard_payload)
     if (lizard_payload->lizards[lizard_id].ch == (char)-1)
     {
         if (lizard_payload->should_use_responder)
+        {
+            // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
             zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
+        }
 
         return;
     }
@@ -391,7 +414,10 @@ void process_lizard_movement(lizard_mover *lizard_payload)
 
     // Reply with the lizard score
     if (lizard_payload->should_use_responder)
+    {
+        // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
         zmq_send(lizard_payload->responder, &lizard_payload->lizards[lizard_id].score, sizeof(int), 0);
+    }
 }
 
 /**
@@ -461,7 +487,10 @@ void process_lizard_disconnect(lizard_mover *lizard_payload)
     if (lizard_id < 0 || lizard_id >= MAX_LIZARDS_ALLOWED)
     {
         if (lizard_payload->should_use_responder)
+        {
+            // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
             zmq_send(lizard_payload->responder, &lizard_not_found, sizeof(int), 0);
+        }
 
         return;
     }
@@ -470,7 +499,10 @@ void process_lizard_disconnect(lizard_mover *lizard_payload)
     if (lizard_payload->lizards[lizard_id].ch == (char)-1)
     {
         if (lizard_payload->should_use_responder)
+        {
+            // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
             zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
+        }
 
         return;
     }
@@ -488,7 +520,10 @@ void process_lizard_disconnect(lizard_mover *lizard_payload)
     lizard_payload->lizards[lizard_id].last_message_time = -1;
 
     if (lizard_payload->should_use_responder)
+    {
+        // zmq_msg_send(lizard_payload->identity, lizard_payload->responder, ZMQ_SNDMORE);
         zmq_send(lizard_payload->responder, &success, sizeof(int), 0);
+    }
 
     (*(lizard_payload->num_lizards))--;
     (*(lizard_payload->slot_lizards))++;

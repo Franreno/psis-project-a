@@ -6,7 +6,6 @@
  * @param wasp_payload - Pointer to the wasp mover
  * @param recv_message - Message received from the server
  * @param wasps - Array of wasps
- * @param responder - ZMQ socket
  * @param num_wasps - Number of wasps
  * @param slot_wasps - Number of available slots
  * @param game_window - Game window
@@ -14,13 +13,11 @@
 void new_wasp_mover(wasp_mover **wasp_payload,
                     message_to_server *recv_message,
                     wasp *wasps,
-                    void *responder,
                     int *num_wasps,
                     int *slot_wasps,
                     window_data *game_window)
 {
     (*wasp_payload)->wasps = wasps;
-    (*wasp_payload)->responder = responder;
     (*wasp_payload)->num_wasps = num_wasps;
     (*wasp_payload)->slot_wasps = slot_wasps;
     (*wasp_payload)->game_window = game_window;

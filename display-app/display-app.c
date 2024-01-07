@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
         {
 
             // j is the line number and only increments when a lizard is printed
-            mvwprintw(score_window, j, 0, "Lizard: Score %d", field_update_struct->scores[i]);
+            mvwprintw(score_window, j, 0, "Lizard: Score %d", field_update_struct->scores[i].score);
             j++;
 
             // Clear the rest of the line

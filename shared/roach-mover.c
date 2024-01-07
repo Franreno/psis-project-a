@@ -6,7 +6,6 @@
  * @param roach_payload - Pointer to the roach mover
  * @param recv_message - Message received from the server
  * @param roaches - Array of roaches
- * @param responder - ZMQ socket
  * @param num_roaches - Number of roaches
  * @param slot_roaches - Number of available slots
  * @param game_window - Game window
@@ -14,13 +13,11 @@
 void new_roach_mover(roach_mover **roach_payload,
                      message_to_server *recv_message,
                      roach *roaches,
-                     void *responder,
                      int *num_roaches,
                      int *slot_roaches,
                      window_data *game_window)
 {
     (*roach_payload)->roaches = roaches;
-    (*roach_payload)->responder = responder;
     (*roach_payload)->num_roaches = num_roaches;
     (*roach_payload)->slot_roaches = slot_roaches;
     (*roach_payload)->game_window = game_window;

@@ -81,6 +81,8 @@ int create_and_connect_sockets(char *req_server_socket_address, char *sub_server
  */
 int connect_lizard(void *requester, message_to_server *send_message)
 {
+    printf("Starting connect_lizard function\n");
+
     int lizard_id;
 
     send_message->client_id = LIZARD;
@@ -88,30 +90,36 @@ int connect_lizard(void *requester, message_to_server *send_message)
     send_message->value = CONNECT;
 
     // Send a message to the server to connect a lizard
-    printf("Attempting to connect lizard");
+    printf("Attempting to connect lizard\n");
 
     // Start of proto encoder
     MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
     message_to_server_proto__init(message_to_server_proto);
 
     // Convert message to server to proto message to server
+    printf("Converting message to server to proto message to server\n");
     message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
 
     // Get the size of the serialized message
+    printf("Getting the size of the serialized message\n");
     size_t message_to_server_proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
 
     // Serialize the message
+    printf("Serializing the message\n");
     void *message_to_server_proto_buffer = malloc(message_to_server_proto_size);
     message_to_server_proto__pack(message_to_server_proto, message_to_server_proto_buffer);
 
     // Send the message
+    printf("Sending the message\n");
     zmq_send(requester, message_to_server_proto_buffer, message_to_server_proto_size, 0);
 
     // Free the serialized message
+    printf("Freeing the serialized message\n");
     free(message_to_server_proto_buffer);
     message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
 
     // Server replies with either failure or the assigned lizard id
+    printf("Receiving server reply\n");
     zmq_recv(requester, &lizard_id, sizeof(int), 0);
     if (lizard_id < 0)
     {
@@ -119,6 +127,8 @@ int connect_lizard(void *requester, message_to_server *send_message)
         return -1;
     }
     printf("Lizard connected with id: %d\n", lizard_id);
+
+    printf("Ending connect_lizard function\n");
 
     return lizard_id;
 }
@@ -434,6 +444,8 @@ void *display_thread_function(void *arg)
  */
 int main(int argc, char *argv[])
 {
+    printf("Starting main function\n");
+
     void *context;
     void *requester;
     void *subscriber;
@@ -473,12 +485,15 @@ int main(int argc, char *argv[])
         strcat(sub_server_socket_address, sub_port);
     }
 
+    printf("Creating and connecting sockets\n");
     if (create_and_connect_sockets(req_server_socket_address, sub_server_socket_address, &context, &requester, &subscriber) != 0)
         return -1;
 
+    printf("Setting socket options\n");
     zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "field_update", 3);
 
     // Initialize ncurses
+    printf("Initializing ncurses\n");
     initscr();
     cbreak();
     keypad(stdscr, TRUE);
@@ -487,6 +502,7 @@ int main(int argc, char *argv[])
     message_to_server send_message;
 
     // Create lizard and connect it to the server
+    printf("Connecting lizard\n");
     int lizard_id = connect_lizard(requester, &send_message);
     if (lizard_id < 0)
     {
@@ -505,6 +521,7 @@ int main(int argc, char *argv[])
     draw_entire_matrix(game_window);
 
     // Create a new window for the scores
+    printf("Creating score window\n");
     WINDOW *score_window = newwin(MAX_LIZARDS_ALLOWED, 50, 0, WINDOW_SIZE + 2);
 
     display_args *args = malloc(sizeof(display_args));
@@ -512,22 +529,29 @@ int main(int argc, char *argv[])
     args->game_window = game_window;
     args->score_window = score_window;
 
+    printf("Creating display thread\n");
     pthread_t display_thread;
     pthread_create(&display_thread, NULL, display_thread_function, (void *)args);
 
     // Handle lizard movement until SIGINT is received (Ctrl+C) or the user presses the "q" or "Q" keys
+    printf("Handling lizard movement\n");
     move_lizard(lizard_id, requester, &send_message);
 
     // Disconnect lizard from server
+    printf("Disconnecting lizard\n");
     disconnect_lizard(lizard_id, requester, &send_message);
 
+    printf("Canceling display thread\n");
     pthread_cancel(display_thread);
     endwin();
 
     // Close socket and destroy context
+    printf("Closing sockets and destroying context\n");
     zmq_close(requester);
     zmq_close(subscriber);
     zmq_ctx_destroy(context);
+
+    printf("Ending main function\n");
 
     return 0;
 }

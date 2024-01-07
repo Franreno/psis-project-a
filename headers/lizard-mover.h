@@ -16,9 +16,11 @@ typedef struct lizard_mover
     roach **eaten_roaches;
     int *amount_eaten_roaches;
     char should_use_responder;
+    size_t identity_size;
+    zmq_msg_t *identity;
 } lizard_mover;
 
-void new_lizard_mover(lizard_mover **lizard_payload, message_to_server *recv_message, lizard *lizards, void *responder, int *num_lizards, int *slot_lizards, window_data *game_window);
+void new_lizard_mover(lizard_mover **lizard_payload, message_to_server *recv_message, lizard *lizards, int *num_lizards, int *slot_lizards, window_data *game_window);
 void process_lizard_message(lizard_mover *lizard_payload);
 void process_lizard_connect(lizard_mover *lizard_payload);
 void process_lizard_inject_connect(lizard_mover *lizard_payload, lizard connected_lizard, int received_id);

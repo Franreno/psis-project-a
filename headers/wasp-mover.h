@@ -18,7 +18,7 @@ typedef struct wasp_mover
     char should_use_responder;
 } wasp_mover;
 
-void new_wasp_mover(wasp_mover **wasp_payload, message_to_server *recv_message, wasp *wasps, void *responder, int *num_wasps, int *slot_wasps, window_data *game_window);
+void new_wasp_mover(wasp_mover **wasp_payload, message_to_server *recv_message, wasp *wasps, int *num_wasps, int *slot_wasps, window_data *game_window);
 void process_wasp_message(wasp_mover *wasp_payload);
 void process_wasp_connect(wasp_mover *wasp_payload);
 int calculate_wasp_movement(wasp_mover *wasp_payload, int *new_x, int *new_y);
