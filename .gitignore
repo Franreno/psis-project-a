@@ -58,3 +58,5 @@ dkms.conf
 !makefile
 !Makefile
 output/
+
+__pycache__/
