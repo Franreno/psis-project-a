@@ -55,12 +55,31 @@ int create_and_connect_sockets(char *rep_server_socket_address, char *pub_server
         return -1;
     }
 
+    int curve_server = 1;
+    zmq_setsockopt(*responder, ZMQ_CURVE_SERVER, &curve_server, sizeof(curve_server));
+
+    if (zmq_setsockopt(*responder, ZMQ_CURVE_SECRETKEY, SERVER_PRIVATE_KEY, 40) != 0)
+    {
+        printf("Failed to set secret key: %s\n", zmq_strerror(errno));
+        zmq_close(*responder);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
     // Create PUB socket to send messages to the display app
     *publisher = zmq_socket(*context, ZMQ_PUB);
     if (*publisher == NULL)
     {
         printf("Failed to create PUB socket: %s\n", zmq_strerror(errno));
         zmq_close(*responder);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+    zmq_setsockopt(*publisher, ZMQ_CURVE_SERVER, &curve_server, sizeof(curve_server));
+    if (zmq_setsockopt(*publisher, ZMQ_CURVE_SECRETKEY, SERVER_PRIVATE_KEY, 40) != 0)
+    {
+        printf("Failed to set secret key: %s\n", zmq_strerror(errno));
+        zmq_close(*publisher);
         zmq_ctx_destroy(*context);
         return -1;
     }
@@ -536,7 +555,7 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-
+        log_write("Waiting for message from client\n");
         // Receive message from one of the clients
         zmq_msg_init(&message);
         // Receive a message part from the socket
@@ -547,6 +566,7 @@ int main(int argc, char *argv[])
             zmq_msg_close(&message);
             exit(EXIT_FAILURE);
         }
+        log_write("Received message from client\n");
         // Get the size of the received message
         size_t msg_size = zmq_msg_size(&message);
         void *msg_data = zmq_msg_data(&message);

@@ -38,7 +38,32 @@ int create_and_connect_socket(char *server_socket_address, void **context, void 
         return -1;
     }
 
-    // Connect to the server using ZMQ_REQ
+    // Add security keys to the socket
+    if (zmq_setsockopt(*requester, ZMQ_CURVE_SERVERKEY, SERVER_PUBLIC_KEY, 40) != 0)
+    {
+        printf("Failed to set server public key: %s\n", zmq_strerror(errno));
+        zmq_close(*requester);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    if (zmq_setsockopt(*requester, ZMQ_CURVE_PUBLICKEY, CLIENT_PUBLIC_KEY, 40) != 0)
+    {
+        printf("Failed to set client public key: %s\n", zmq_strerror(errno));
+        zmq_close(*requester);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+    if (zmq_setsockopt(*requester, ZMQ_CURVE_SECRETKEY, CLIENT_SECRET_KEY, 40) != 0)
+    {
+        printf("Failed to set client secret key: %s\n", zmq_strerror(errno));
+        zmq_close(*requester);
+        zmq_ctx_destroy(*context);
+        return -1;
+    }
+
+        // Connect to the server using ZMQ_REQ
     if (zmq_connect(*requester, server_socket_address) != 0)
     {
         printf("Failed to connect: %s\n", zmq_strerror(errno));
