@@ -104,7 +104,6 @@ int create_and_connect_sockets(char *req_server_socket_address, char *sub_server
 
 int connect_lizard(void *requester, message_to_server *send_message)
 {
-    printf("Starting connect_lizard function\n");
 
     int lizard_id;
 
@@ -113,46 +112,34 @@ int connect_lizard(void *requester, message_to_server *send_message)
     send_message->value = CONNECT;
 
     // Send a message to the server to connect a lizard
-    printf("Attempting to connect lizard\n");
 
     // Start of proto encoder
     MessageToServerProto *message_to_server_proto = malloc(sizeof(MessageToServerProto));
     message_to_server_proto__init(message_to_server_proto);
 
     // Convert message to server to proto message to server
-    printf("Converting message to server to proto message to server\n");
     message_to_server_to_proto_message_to_server(message_to_server_proto, send_message);
 
     // Get the size of the serialized message
-    printf("Getting the size of the serialized message\n");
     size_t message_to_server_proto_size = message_to_server_proto__get_packed_size(message_to_server_proto);
 
     // Serialize the message
-    printf("Serializing the message\n");
     void *message_to_server_proto_buffer = malloc(message_to_server_proto_size);
     message_to_server_proto__pack(message_to_server_proto, message_to_server_proto_buffer);
 
     // Send the message
-    printf("Sending the message\n");
     zmq_send(requester, message_to_server_proto_buffer, message_to_server_proto_size, 0);
 
     // Free the serialized message
-    printf("Freeing the serialized message\n");
     free(message_to_server_proto_buffer);
     message_to_server_proto__free_unpacked(message_to_server_proto, NULL);
 
     // Server replies with either failure or the assigned lizard id
-    printf("Receiving server reply\n");
     zmq_recv(requester, &lizard_id, sizeof(int), 0);
     if (lizard_id < 0)
     {
-        printf("Failed to connect lizard! No more slots available\n");
         return -1;
     }
-    printf("Lizard connected with id: %d\n", lizard_id);
-
-    printf("Ending connect_lizard function\n");
-
     return lizard_id;
 }
 
