@@ -303,6 +303,72 @@ void send_updated_cells(void *publisher, window_data *game_window, lizard_mover 
     memset(game_window->updated_cell_indexes, 0, sizeof(int) * game_window->size_of_updated_cells);
 }
 
+typedef struct RemoveTimeoutEntitiesArgs
+{
+    lizard_mover *lizard_payload;
+    roach_mover *roach_payload;
+    wasp_mover *wasp_payload;
+} remove_timeout_entities_args;
+
+// Threads for removing timed out entities
+void *remove_timeout_entities_thread(void *args)
+{
+    remove_timeout_entities_args *arguments = (remove_timeout_entities_args *)args;
+
+    // Run this function every second
+    while (1)
+    {
+        sleep(1);
+        remove_timeout_entities(arguments->lizard_payload, arguments->roach_payload, arguments->wasp_payload);
+    }
+
+    return NULL;
+}
+
+typedef struct RespawnEatenRoachesArgs
+{
+    roach_mover *roach_payload;
+    roach **eaten_roaches;
+    int *amount_eaten_roaches;
+} respawn_eaten_roaches_args;
+// Threads for respawning eaten roaches
+void *respawn_eaten_roaches_thread(void *args)
+{
+    respawn_eaten_roaches_args *arguments = (respawn_eaten_roaches_args *)args;
+
+    // Run this function every second
+    while (1)
+    {
+        sleep(1);
+        respawn_eaten_roaches(arguments->roach_payload, arguments->eaten_roaches, arguments->amount_eaten_roaches);
+    }
+
+    return NULL;
+}
+
+typedef struct SendUpdatedCellsArgs
+{
+    void *publisher;
+    window_data *game_window;
+    lizard_mover *lizard_payload;
+} send_updated_cells_args;
+
+// Threads for sending updated cells
+void *send_updated_cells_thread(void *args)
+{
+    send_updated_cells_args *arguments = (send_updated_cells_args *)args;
+
+    // Run this function every 10 milliseconds
+    while (1)
+    {
+        usleep(10000);
+        if (arguments->game_window->size_of_updated_cells > 0)
+            send_updated_cells(arguments->publisher, arguments->game_window, arguments->lizard_payload);
+    }
+
+    return NULL;
+}
+
 int main(int argc, char *argv[])
 {
     // Print the parameters the server is running with
@@ -442,10 +508,34 @@ int main(int argc, char *argv[])
 
     zmq_msg_t message;
 
+    pthread_t remove_timeout_entities_thread_t;
+    pthread_t respawn_eaten_roaches_thread_t;
+    pthread_t send_updated_cells_thread_t;
+
+    remove_timeout_entities_args remove_timeout_entities_arguments;
+    remove_timeout_entities_arguments.lizard_payload = lizard_payload;
+    remove_timeout_entities_arguments.roach_payload = roach_payload;
+    remove_timeout_entities_arguments.wasp_payload = wasp_payload;
+
+    respawn_eaten_roaches_args respawn_eaten_roaches_arguments;
+    respawn_eaten_roaches_arguments.roach_payload = roach_payload;
+    respawn_eaten_roaches_arguments.eaten_roaches = eaten_roaches;
+    respawn_eaten_roaches_arguments.amount_eaten_roaches = &eaten_roaches_count;
+
+    send_updated_cells_args send_updated_cells_arguments;
+    send_updated_cells_arguments.publisher = publisher;
+    send_updated_cells_arguments.game_window = game_window;
+    send_updated_cells_arguments.lizard_payload = lizard_payload;
+
+    // Create the threads for removing timed out entities and respawning eaten roaches
+    pthread_create(&remove_timeout_entities_thread_t, NULL, remove_timeout_entities_thread, &remove_timeout_entities_arguments);
+
+    pthread_create(&respawn_eaten_roaches_thread_t, NULL, respawn_eaten_roaches_thread, &respawn_eaten_roaches_arguments);
+
+    pthread_create(&send_updated_cells_thread_t, NULL, send_updated_cells_thread, &send_updated_cells_arguments);
+
     while (1)
     {
-        // Remove the timed out entities
-        remove_timeout_entities(lizard_payload, roach_payload, wasp_payload);
 
         // Receive message from one of the clients
         zmq_msg_init(&message);
@@ -532,24 +622,24 @@ int main(int argc, char *argv[])
         default:
             break;
         }
-
-        // Respawn the eaten roaches
-        respawn_eaten_roaches(roach_payload, eaten_roaches, &eaten_roaches_count);
-
-        // Check for updated cells and updated scores
-        if (game_window->size_of_updated_cells > 0)
-        {
-            // Send the updated cells to the clients
-            log_write("Sending updated cells to clients\n");
-            send_updated_cells(publisher, game_window, lizard_payload);
-            log_write("Sent updated cells to clients\n");
-        }
     }
 
     endwin();
 
     zmq_close(responder);
     zmq_ctx_destroy(context);
+
+    // Free the allocated memory
+
+    free(wasp_payload);
+    free(roach_payload);
+    free(lizard_payload);
+
+    // Join the threads
+
+    pthread_join(remove_timeout_entities_thread_t, NULL);
+    pthread_join(respawn_eaten_roaches_thread_t, NULL);
+    pthread_join(send_updated_cells_thread_t, NULL);
 
     free(eaten_roaches);
     log_close();

@@ -186,16 +186,23 @@ int calculate_lizard_movement(lizard_mover *lizard_payload, int *new_x, int *new
         if (new_lizard_score < MAX_LIZARD_SCORE)
         {
             // Erase the tails
-            erase_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
-            erase_lizard_tail(lizard_payload, id_2, lizard_payload->lizards[id_2].previous_direction);
+            // Check for score positive
+            if (lizard_payload->lizards[id_1].score >= 0)
+                erase_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
+
+            if (lizard_payload->lizards[id_2].score >= 0)
+                erase_lizard_tail(lizard_payload, id_2, lizard_payload->lizards[id_2].previous_direction);
 
             // Remove the lizards mark of a winner
             lizard_payload->lizards[id_1].is_winner = 0;
             lizard_payload->lizards[id_2].is_winner = 0;
 
             // Draw the tails again
-            draw_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
-            draw_lizard_tail(lizard_payload, id_2, lizard_payload->lizards[id_2].previous_direction);
+            if (lizard_payload->lizards[id_1].score >= 0)
+                draw_lizard_tail(lizard_payload, id_1, lizard_payload->lizards[id_1].previous_direction);
+
+            if (lizard_payload->lizards[id_2].score >= 0)
+                draw_lizard_tail(lizard_payload, id_2, lizard_payload->lizards[id_2].previous_direction);
         }
 
         return 0;
